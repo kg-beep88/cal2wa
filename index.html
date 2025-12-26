@@ -821,7 +821,8 @@ function startDateLabel(ev){
 
 function parseDescription(desc){
   const out = { addr:"", contact:"", lock:"", remove:"", keep:"", protect:"", disposal:"" };
-  const lines = (desc || "").split(/?
+  const lines = (desc || "").split(/
+?
 /);
   for(const raw of lines){
     const line = (raw || "").trim();
@@ -1511,8 +1512,8 @@ $("events").addEventListener("click", (e)=>{
 // Auth buttons (top + bottom)
 const authTopBtn = document.getElementById("authTopBtn");
 const logoutTopBtn = document.getElementById("logoutTopBtn");
-const authBtn = document.getElementById("authBtn");
-const logoutBtn = document.getElementById("logoutBtn");
+const authBtn = document.getElementById("authTopBtn") || document.getElementById("authBtn");
+const logoutBtn = document.getElementById("logoutTopBtn") || document.getElementById("logoutBtn");
 
 function doAuth(){
   if(!tokenClient){ toast("Auth not ready"); return; }
