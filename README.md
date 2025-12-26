@@ -1,23 +1,34 @@
-# Calendar → WhatsApp (PWA)
+# Work Plan PWA (Google Calendar ↔ WhatsApp)
 
-A simple iPhone-friendly PWA that:
-- reads your Google Calendar events automatically (OAuth login)
-- shows a clean list on your phone
-- generates ONE combined WhatsApp message for Today or a chosen date
+This PWA:
+- looks like a simple Google Calendar agenda on phone (Day/Week)
+- reads events from Google Calendar
+- lets you CREATE / EDIT / DELETE events (saved into Google Calendar)
+- provides a ready Notes template (EN+中文)
+- generates ONE combined WhatsApp message for the selected date (copy/open)
 
-## Files
-- index.html : app UI + Calendar fetch + WhatsApp share
-- config.js  : paste your Google OAuth Client ID here
-- manifest.webmanifest : PWA settings
-- sw.js : offline shell cache
-- icons/ : app icons
+## WhatsApp note (important)
+A website cannot directly auto-send into a specific WhatsApp group.
+The reliable flow is: Copy → WhatsApp → paste into your pinned group → Send.
 
-## Important
-WhatsApp cannot auto-send directly to a specific group from a website.
-The reliable flow is: Copy → open WhatsApp → paste into the group → Send.
+## Google Cloud setup (free)
+1) Create Google Cloud project
+2) Enable Google Calendar API
+3) OAuth Consent Screen:
+   - External
+   - Testing
+   - Add your Gmail under Test Users
+4) Create OAuth Client ID (Web application)
+   - Authorized JavaScript origin: https://YOURNAME.github.io
+5) In config.js paste your CLIENT_ID
 
-## Quick format for Calendar events
-Title:  Site – Work – Area / 地点-工作-区域
-Location: full address + meet point
-Notes: use the template inside the app (copy button)
+Scope used:
+- https://www.googleapis.com/auth/calendar.events  (read + write events)
 
+## GitHub Pages
+Repo Settings → Pages → Deploy from branch → main / root
+Open the Pages link in Safari and Add to Home Screen.
+
+## Recommended workflow
+- Put #JOB in work items (title or notes)
+- Keep Location = address, Notes = details (workers/vehicle, wall to remove, PTW)

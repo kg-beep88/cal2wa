@@ -1,10 +1,17 @@
 // config.js
-// 1) Paste your OAuth Client ID below (from Google Cloud Console).
-// Example: "1234567890-abc123def456.apps.googleusercontent.com"
+// Paste your OAuth Client ID (Web application) below:
 window.APP_CONFIG = {
   CLIENT_ID: "PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com",
-  // Optional: calendar id. Use "primary" for your main calendar.
+
+  // Use "primary" for your main calendar, or paste a specific calendar ID
   CALENDAR_ID: "primary",
-  // Optional: default filter keyword. Recommend "#JOB" to avoid personal events.
-  DEFAULT_FILTER: "#JOB"
+
+  // Optional: filter keyword to show only work events (recommended: "#JOB")
+  DEFAULT_FILTER: "#JOB",
+
+  // When creating a timed event, default duration (minutes)
+  DEFAULT_DURATION_MIN: 120,
+
+  // Default title prefix (optional)
+  TITLE_PREFIX: ""
 };

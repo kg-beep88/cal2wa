@@ -3,29 +3,123 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Calendar → WhatsApp</title>
-  <meta name="theme-color" content="#111827" />
+  <title>Work Plan Calendar → WhatsApp</title>
+  <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="./manifest.webmanifest" />
 
+  <!-- Bright, big, iPhone-friendly UI -->
   <style>
-    :root { --bg:#0b1220; --card:#111827; --line:#1f2937; --muted:#9ca3af; --txt:#e5e7eb; --btn:#2563eb; }
+    :root{
+      --bg:#f8fafc;
+      --card:#ffffff;
+      --line:#e5e7eb;
+      --muted:#6b7280;
+      --txt:#111827;
+      --blue:#2563eb;
+      --blue2:#1d4ed8;
+      --shadow: 0 8px 20px rgba(2,6,23,.08);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
     body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt)}
-    .wrap{max-width:960px;margin:0 auto;padding:14px 14px 96px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
+    .wrap{max-width:980px;margin:0 auto;padding:14px 14px 110px}
+    .topbar{
+      position:sticky; top:0; z-index:10;
+      background:rgba(248,250,252,.92); backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--line);
+      padding:12px 14px;
+    }
+    .topbarInner{max-width:980px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center}
+    .logo{width:34px;height:34px;border-radius:10px;background:var(--blue);display:grid;place-items:center;color:#fff;font-weight:900}
+    .title{font-size:18px;font-weight:900;line-height:1}
+    .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .title{font-size:18px;font-weight:900}
+    .card{
+      background:var(--card); border:1px solid var(--line);
+      border-radius:var(--radius); padding:14px; margin:12px 0; box-shadow:var(--shadow);
+    }
+    .sectionTitle{font-weight:900;font-size:14px;margin:0 0 8px}
     .muted{color:var(--muted);font-size:12px;line-height:1.35}
-    input,select{background:#0f172a;border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:10px;font-size:15px}
-    button{border:0;border-radius:12px;padding:10px 12px;font-size:15px;font-weight:800;background:var(--btn);color:#fff}
-    button.secondary{background:#334155}
-    button.danger{background:#ef4444}
-    pre{white-space:pre-wrap;background:#0f172a;border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
-    .taskTitle{font-weight:900}
-    .sep{border-top:1px dashed #334155;margin:10px 0}
-    .fixed{position:fixed;left:0;right:0;bottom:0;background:rgba(11,18,32,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:12px 14px}
-    .fixedInner{max-width:960px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-    a{color:#93c5fd}
-    .badge{display:inline-block;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:#0f172a;color:var(--muted);font-size:12px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:#fff}
+    input,select,textarea{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      font-size:16px; /* big for iPhone */
+      background:#fff;
+      color:var(--txt);
+      outline:none;
+    }
+    textarea{min-height:140px; resize: vertical;}
+    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    button{
+      border:0;border-radius:14px;
+      padding:12px 14px;
+      font-size:16px;font-weight:900;
+      background:var(--blue); color:#fff;
+      box-shadow: 0 6px 16px rgba(37,99,235,.25);
+    }
+    button:active{transform:translateY(1px)}
+    button.secondary{background:#fff;color:var(--txt);border:1px solid var(--line);box-shadow:none}
+    button.danger{background:#ef4444;box-shadow: 0 6px 16px rgba(239,68,68,.25)}
+    button.small{padding:10px 12px;font-size:15px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width: 760px){ .grid2{grid-template-columns:1fr} }
+    .event{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+      display:flex;gap:12px;justify-content:space-between;align-items:flex-start;
+    }
+    .eventTime{
+      min-width:78px;
+      font-weight:900;
+      color:var(--blue2);
+    }
+    .eventMain{flex:1}
+    .eventTitle{font-weight:900}
+    .eventMeta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .divider{border-top:1px dashed var(--line);margin:10px 0}
+    pre{
+      white-space:pre-wrap;
+      background:#f1f5f9;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      margin:10px 0 0;
+      font-size:14px;
+    }
+    .modalBackdrop{
+      position:fixed; inset:0; background:rgba(2,6,23,.44);
+      display:none; z-index:50;
+      padding:14px;
+      overflow:auto;
+    }
+    .modal{
+      max-width:860px; margin:30px auto; background:#fff;
+      border-radius:20px; border:1px solid var(--line); box-shadow: var(--shadow);
+      padding:14px;
+    }
+    .modalHead{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+    .modalHead h2{margin:0;font-size:16px;font-weight:900}
+    .toast{
+      position:fixed; top:14px; left:50%; transform:translateX(-50%);
+      background:#111827; color:#fff;
+      border-radius:999px; padding:10px 12px;
+      font-size:13px; display:none; z-index:99;
+    }
+    .fixedBottom{
+      position:fixed; left:0; right:0; bottom:0;
+      background:rgba(248,250,252,.94); backdrop-filter: blur(10px);
+      border-top:1px solid var(--line);
+      padding:12px 14px;
+      z-index:20;
+    }
+    .fixedInner{max-width:980px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center}
   </style>
 
   <!-- Google Identity Services -->
@@ -34,311 +128,758 @@
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
+  <div class="toast" id="toast"></div>
+
+  <div class="topbar">
+    <div class="topbarInner">
+      <div class="brand">
+        <div class="logo">W</div>
         <div>
-          <div class="title">Calendar → WhatsApp</div>
-          <div class="muted">Read Google Calendar automatically, then send all tasks as one WhatsApp message.</div>
-          <div class="muted"><span class="badge">Tip</span> Put <b>#JOB</b> in Title or Notes to filter only work tasks.</div>
+          <div class="title">Work Plan</div>
+          <div class="subtitle">Calendar view + template + WhatsApp message</div>
         </div>
-        <div class="row">
-          <select id="lang" aria-label="Language">
+      </div>
+
+      <div class="row">
+        <span class="pill">
+          <span style="font-weight:900;color:var(--muted);font-size:12px">Language</span>
+          <select id="lang" style="width:auto;padding:10px 12px;font-size:15px;border-radius:999px">
             <option value="bi" selected>EN + 中文</option>
             <option value="en">English</option>
             <option value="zh">中文</option>
           </select>
+        </span>
+
+        <button class="secondary small" id="authBtn">Authorize</button>
+        <button class="secondary small" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div class="sectionTitle">Calendar view (like Google Calendar)</div>
+          <div class="muted">Pick date, view Day / Week, create or edit events with ready template.</div>
+        </div>
+        <div class="row">
+          <button class="secondary small" id="todayBtn">Today</button>
+          <button class="secondary small" id="prevBtn">◀</button>
+          <button class="secondary small" id="nextBtn">▶</button>
         </div>
       </div>
 
-      <div class="row" style="margin-top:10px">
-        <input id="date" type="date" />
-        <input id="filter" placeholder="Filter keyword (e.g. #JOB)" style="min-width:220px"/>
-        <button id="authBtn">Authorize Google</button>
-        <button class="secondary" id="loadBtn">Load</button>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <label>Date / 日期</label>
+          <input id="datePick" type="date" />
+        </div>
+        <div>
+          <label>View / 视图</label>
+          <select id="viewSel">
+            <option value="day" selected>Day (Agenda) / 今日列表</option>
+            <option value="week">Week / 一周</option>
+          </select>
+        </div>
       </div>
 
-      <div class="muted" id="status" style="margin-top:8px">Not authorized yet.</div>
-      <div class="sep"></div>
-      <div class="muted">
-        <b>Calendar event format</b> (easy for workers):
-        <div class="sep"></div>
-        <div><b>Title / 标题:</b> Site – Work – Area / 地点-工作-区域</div>
-        <div><b>Location / 地址:</b> Full address + meet point</div>
-        <div><b>Notes / 备注:</b> Wall remove / workers / vehicles / PTW, etc.</div>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <label>Filter keyword / 筛选关键词</label>
+          <input id="filter" placeholder="#JOB (recommended)" />
+          <div class="muted">Tip: put <b>#JOB</b> in Title or Notes to show only work items.</div>
+        </div>
+        <div>
+          <label>Actions / 操作</label>
+          <div class="row">
+            <button id="loadBtn" class="secondary">Load / 载入</button>
+            <button id="newBtn">New Job / 新增</button>
+          </div>
+        </div>
       </div>
+
+      <div class="divider"></div>
+      <div id="status" class="muted">Not authorized yet.</div>
     </div>
-
-    <div id="list"></div>
 
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div>
-          <div class="taskTitle">Preview message / 预览信息</div>
-          <div class="muted">WhatsApp group: Copy → open WhatsApp → Paste → Send (most reliable).</div>
+          <div class="sectionTitle" id="listTitle">Tasks</div>
+          <div class="muted" id="listSub">Tap an item to edit.</div>
         </div>
         <div class="row">
-          <button class="secondary" id="copyBtn">Copy / 复制</button>
-          <button id="waBtn">Open WhatsApp / 打开</button>
+          <button class="secondary small" id="copyMsgBtn">Copy WhatsApp</button>
+          <button class="small" id="openWaBtn">Open WhatsApp</button>
         </div>
       </div>
+
+      <div id="events"></div>
+
+      <div class="divider"></div>
+      <div class="sectionTitle">WhatsApp message preview</div>
       <pre id="preview"></pre>
     </div>
 
     <div class="card">
-      <div class="taskTitle">Notes Template / 备注模板</div>
-      <div class="muted">Copy this into your Google Calendar event Notes.</div>
+      <div class="sectionTitle">Notes Template / 备注模板</div>
+      <div class="muted">Use this in Google Calendar Notes. One tap to copy.</div>
       <pre id="tpl"></pre>
       <div class="row">
-        <button class="secondary" id="copyTplBtn">Copy Template</button>
+        <button class="secondary" id="copyTplBtn">Copy template</button>
       </div>
     </div>
 
     <div class="muted">
       Install on iPhone: open in Safari → Share → <b>Add to Home Screen</b>.
-      <br/>If Google login popup fails inside Home Screen app, open the same link in Safari and authorize first.
+      <br/>If Google login popup fails inside the Home Screen app, open the same link in Safari and authorize there first.
     </div>
   </div>
 
-  <div class="fixed">
+  <!-- Modal: Create/Edit Event -->
+  <div class="modalBackdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="modalHead">
+        <div>
+          <h2 id="modalTitle">New Job</h2>
+          <div class="muted">Save directly into Google Calendar. Edit anytime.</div>
+        </div>
+        <div class="row">
+          <button class="secondary small" id="closeModalBtn">Close</button>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <label>Start time / 开始时间</label>
+          <input id="fStart" type="time" />
+          <div class="muted">Leave blank = all day.</div>
+        </div>
+        <div>
+          <label>End time / 结束时间</label>
+          <input id="fEnd" type="time" />
+          <div class="muted">Leave blank = auto duration.</div>
+        </div>
+      </div>
+
+      <label>Title / 标题</label>
+      <input id="fTitle" placeholder="510 Thomson – Remove Wall – BR2 / 拆墙-房2 #JOB" />
+
+      <label>Location (Address) / 地址</label>
+      <input id="fLoc" placeholder="510 Thomson Rd #05-XX, Meet at Guardhouse / 保安处集合" />
+
+      <label>Notes / 备注</label>
+      <textarea id="fNotes" placeholder=""></textarea>
+
+      <div class="row" style="margin-top:12px;justify-content:space-between">
+        <div class="row">
+          <button class="secondary" id="insertTplBtn">Insert template</button>
+          <button class="secondary" id="addSlotBtn">+ Slot</button>
+          <button class="secondary" id="addJobTagBtn">Add #JOB</button>
+        </div>
+        <div class="row">
+          <button class="danger" id="delBtn" style="display:none">Delete</button>
+          <button id="saveBtn">Save</button>
+        </div>
+      </div>
+
+      <div class="muted" style="margin-top:10px">
+        Tip: Keep Title + Location + Notes consistent. Then WhatsApp message becomes very clear.
+      </div>
+    </div>
+  </div>
+
+  <div class="fixedBottom">
     <div class="fixedInner">
       <div class="muted" id="footer">Ready.</div>
       <div class="row">
-        <button class="secondary" id="todayBtn">Today / 今天</button>
-        <button id="sendBtn">Send (copy+open) / 发送</button>
+        <button class="secondary" id="sendBtn">Send Today (copy+open)</button>
       </div>
     </div>
   </div>
 
 <script>
-  // --------- Config ----------
-  const CFG = window.APP_CONFIG || {};
-  const CLIENT_ID = CFG.CLIENT_ID || "PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com";
-  const CALENDAR_ID = CFG.CALENDAR_ID || "primary";
-  const DEFAULT_FILTER = (CFG.DEFAULT_FILTER ?? "#JOB").trim();
+/* ===========================
+   Work Plan PWA v2 (Read + Write Google Calendar)
+   =========================== */
 
-  // Minimum read scope for events.list:
-  const SCOPES = "https://www.googleapis.com/auth/calendar.events.readonly";
+const CFG = window.APP_CONFIG || {};
+const CLIENT_ID = CFG.CLIENT_ID || "PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com";
+const CALENDAR_ID = CFG.CALENDAR_ID || "primary";
+const DEFAULT_FILTER = (CFG.DEFAULT_FILTER ?? "#JOB").trim();
+const DEFAULT_DURATION_MIN = Number(CFG.DEFAULT_DURATION_MIN || 120);
+const TITLE_PREFIX = (CFG.TITLE_PREFIX ?? "").trim();
 
-  // --------- State ----------
-  let tokenClient = null;
-  let accessToken = null;
-  let lastEvents = [];
+// Read + Write scope
+const SCOPES = "https://www.googleapis.com/auth/calendar.events";
 
-  const $ = (id) => document.getElementById(id);
+let tokenClient = null;
+let accessToken = null;
+let lastEvents = [];
+let editingEventId = null;
 
-  function isoDateLocal(d){
-    const off = d.getTimezoneOffset();
-    const d2 = new Date(d.getTime() - off*60000);
-    return d2.toISOString().slice(0,10);
+const $ = (id)=>document.getElementById(id);
+
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(()=> t.style.display="none", 1600);
+}
+
+function setStatus(msg){
+  $("status").textContent = msg;
+  $("footer").textContent = msg;
+}
+
+function isoDateLocal(d){
+  const off = d.getTimezoneOffset();
+  const d2 = new Date(d.getTime() - off*60000);
+  return d2.toISOString().slice(0,10);
+}
+
+function addDays(dateStr, delta){
+  const [y,m,d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m-1, d+delta);
+  return isoDateLocal(dt);
+}
+
+function notesTemplate(){
+  return `Address: ________
+SCOPE :
+Remove : __________
+Keep : __________
+Protect : _______
+Disposal : ____________________`;
+}
+
+function headerFor(dateStr){
+  const lang = $("lang").value;
+  if(lang==="en") return `DAILY PLAN: ${dateStr}`;
+  if(lang==="zh") return `每日安排: ${dateStr}`;
+  return `DAILY PLAN / 每日安排: ${dateStr}`;
+}
+
+function fmtTime(ev){
+  if(ev.start?.dateTime){
+    const dt = new Date(ev.start.dateTime);
+    return dt.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
   }
+  return "ALL DAY";
+}
 
-  function setStatus(msg){
-    $("status").textContent = msg;
-    $("footer").textContent = msg;
-  }
-
-  function notesTemplate(){
-    return `SCOPE 工作:
-Remove 拆: __________
-Keep 保: __________
-Protect 保护: _______
-
-Workers 工人 & Vehicle 车辆:
-Van1 车1 (Plate 车牌 ____): _______
-Van2 车2 (Plate 车牌 ____): _______
-
-PTW 许可: Yes/No
-Disposal 清运: Yes/No
-Contact 联系: _______`;
-  }
-
-  function headerFor(dateStr){
+function buildMessage(dateStr, events){
+  const lines = [headerFor(dateStr), ""];
+  if(!events.length){
     const lang = $("lang").value;
-    if(lang==="en") return `DAILY PLAN: ${dateStr}`;
-    if(lang==="zh") return `每日安排: ${dateStr}`;
-    return `DAILY PLAN / 每日安排: ${dateStr}`;
-  }
-
-  function fmtTime(ev){
-    if(ev.start?.dateTime){
-      const dt = new Date(ev.start.dateTime);
-      return dt.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
-    }
-    return "ALL DAY";
-  }
-
-  function buildMessage(dateStr, events){
-    const lines = [headerFor(dateStr), ""];
-    if(!events.length){
-      const lang = $("lang").value;
-      lines.push(lang==="zh" ? "（当天没有安排）" : lang==="en" ? "(No tasks.)" : "(No tasks / 当天没有安排)");
-      return lines.join("\n");
-    }
-    for(const ev of events){
-      const t = fmtTime(ev);
-      const title = ev.summary || "(No title)";
-      lines.push(`• 【${t}】 ${title}`);
-      if(ev.location) lines.push(`📍 ${ev.location}`);
-      if(ev.description) lines.push(`📝 ${ev.description.trim()}`);
-      lines.push("--------------------------------");
-    }
+    lines.push(lang==="zh" ? "（当天没有安排）" : lang==="en" ? "(No tasks.)" : "(No tasks / 当天没有安排)");
     return lines.join("\n");
   }
+  for(const ev of events){
+    const t = fmtTime(ev);
+    const title = ev.summary || "(No title)";
+    lines.push(`• 【${t}】 ${title}`);
+    if(ev.location) lines.push(`📍 ${ev.location}`);
+    if(ev.description) lines.push(`📝 ${ev.description.trim()}`);
+    lines.push("--------------------------------");
+  }
+  return lines.join("\n");
+}
 
-  function setPreview(){
-    const dateStr = $("date").value;
-    $("preview").textContent = buildMessage(dateStr, lastEvents);
+function setPreview(){
+  const dateStr = $("datePick").value;
+  $("preview").textContent = buildMessage(dateStr, lastEvents);
+}
+
+function rfc3339(dt){
+  const pad = (n)=> String(n).padStart(2,"0");
+  const tz = -dt.getTimezoneOffset();
+  const sign = tz>=0?"+":"-";
+  const hh = pad(Math.floor(Math.abs(tz)/60));
+  const mm = pad(Math.abs(tz)%60);
+  return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}${sign}${hh}:${mm}`;
+}
+
+function rfcRangeForDay(dateStr){
+  const [y,m,d] = dateStr.split("-").map(Number);
+  const start = new Date(y, m-1, d, 0,0,0);
+  const end = new Date(y, m-1, d+1, 0,0,0);
+  return { timeMin: rfc3339(start), timeMax: rfc3339(end) };
+}
+
+function mondayOfWeek(dateStr){
+  const [y,m,d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m-1, d);
+  const day = dt.getDay(); // 0 Sun .. 6 Sat
+  const diffToMon = (day === 0) ? -6 : (1 - day);
+  dt.setDate(dt.getDate() + diffToMon);
+  return isoDateLocal(dt);
+}
+
+function rfcRangeForWeek(dateStr){
+  const mon = mondayOfWeek(dateStr);
+  const {timeMin} = rfcRangeForDay(mon);
+  const sunPlusOne = addDays(mon, 7);
+  const {timeMax} = rfcRangeForDay(sunPlusOne); // start of next week
+  return { timeMin, timeMax, mon };
+}
+
+async function apiFetch(url, opts={}){
+  if(!accessToken) throw new Error("Not authorized. Tap Authorize first.");
+  const headers = Object.assign({}, opts.headers || {}, {
+    "Authorization": `Bearer ${accessToken}`,
+    "Accept": "application/json"
+  });
+  if(opts.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+  const res = await fetch(url, Object.assign({}, opts, { headers }));
+  if(!res.ok){
+    const t = await res.text().catch(()=> "");
+    throw new Error(`API ${res.status}: ${t.slice(0,160)}`);
+  }
+  if(res.status === 204) return null;
+  return res.json();
+}
+
+// -------- Calendar Read --------
+async function fetchEvents(dateStr){
+  const view = $("viewSel").value;
+  const q = ($("filter").value || "").trim();
+
+  let range;
+  if(view === "week"){
+    range = rfcRangeForWeek(dateStr);
+  } else {
+    range = rfcRangeForDay(dateStr);
   }
 
-  function rfc3339Range(dateStr){
-    const [y,m,d] = dateStr.split("-").map(Number);
-    const start = new Date(y, m-1, d, 0,0,0);
-    const end = new Date(y, m-1, d+1, 0,0,0);
+  const params = new URLSearchParams({
+    timeMin: range.timeMin,
+    timeMax: range.timeMax,
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "250"
+  });
+  if(q) params.set("q", q);
 
-    const pad = (n)=> String(n).padStart(2,"0");
-    const toRFC = (dt)=>{
-      const tz = -dt.getTimezoneOffset();
-      const sign = tz>=0?"+":"-";
-      const hh = pad(Math.floor(Math.abs(tz)/60));
-      const mm = pad(Math.abs(tz)%60);
-      return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}${sign}${hh}:${mm}`;
-    };
-    return { timeMin: toRFC(start), timeMax: toRFC(end) };
-  }
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?` + params.toString();
+  const data = await apiFetch(url);
+  const items = (data.items || []).filter(ev => ev.status !== "cancelled");
 
-  async function fetchEvents(dateStr){
-    if(!accessToken) throw new Error("Not authorized yet. Tap 'Authorize Google' first.");
-    const {timeMin, timeMax} = rfc3339Range(dateStr);
-    const q = ($("filter").value || "").trim();
+  // For week view, group by date display
+  return { items, weekStart: range.mon };
+}
 
-    const params = new URLSearchParams({
-      timeMin, timeMax,
-      singleEvents: "true",
-      orderBy: "startTime",
-      maxResults: "250"
-    });
-    if(q) params.set("q", q);
+function escapeHtml(s){
+  return (s||"").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
 
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?` + params.toString();
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if(!res.ok){
-      const t = await res.text().catch(()=> "");
-      throw new Error(`Calendar API error ${res.status}. ${t.slice(0,140)}`);
-    }
-    const data = await res.json();
-    return (data.items || []).filter(ev => ev.status !== "cancelled");
-  }
+function dateLabelFromEvent(ev){
+  // Prefer start.dateTime (local date), else start.date
+  const s = ev.start?.dateTime ? new Date(ev.start.dateTime) : (ev.start?.date ? new Date(ev.start.date + "T00:00:00") : null);
+  if(!s) return "";
+  return isoDateLocal(s);
+}
 
-  function renderList(events){
-    lastEvents = events;
-    const box = $("list");
-    box.innerHTML = "";
-    if(!events.length){
-      box.innerHTML = `<div class="card"><div class="muted">No events found. Try changing date or removing filter.</div></div>`;
-      setPreview();
-      return;
-    }
+function renderEvents(items){
+  lastEvents = items;
+  const box = $("events");
+  box.innerHTML = "";
 
-    for(const ev of events){
-      const div = document.createElement("div");
-      div.className = "card";
-      div.innerHTML = `
-        <div class="taskTitle">${escapeHtml(ev.summary || "(No title)")}</div>
-        <div class="muted" style="margin-top:6px">
-          ⏰ ${escapeHtml(fmtTime(ev))}<br/>
-          📍 ${escapeHtml(ev.location || "-")}<br/>
-          📝 ${escapeHtml((ev.description || "-").slice(0,320))}
-        </div>
-      `;
-      box.appendChild(div);
-    }
+  if(!items.length){
+    box.innerHTML = `<div class="muted">No tasks found. Try change date or remove filter.</div>`;
     setPreview();
+    return;
   }
 
-  function escapeHtml(s){
-    return (s||"").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-  }
+  const view = $("viewSel").value;
 
-  async function load(){
-    const dateStr = $("date").value;
-    setStatus("Loading…");
-    try{
-      const events = await fetchEvents(dateStr);
-      renderList(events);
-      setStatus(`Loaded ${events.length} event(s).`);
-    }catch(e){
-      setStatus(e.message);
-      renderList([]);
+  if(view === "week"){
+    // group by date
+    const groups = {};
+    for(const ev of items){
+      const d = dateLabelFromEvent(ev) || "unknown";
+      groups[d] = groups[d] || [];
+      groups[d].push(ev);
     }
-  }
+    const dates = Object.keys(groups).sort();
+    for(const d of dates){
+      const hdr = document.createElement("div");
+      hdr.className = "muted";
+      hdr.style.fontWeight = "900";
+      hdr.style.margin = "12px 0 8px";
+      hdr.textContent = d;
+      box.appendChild(hdr);
 
-  async function copyText(txt){
-    try{
-      await navigator.clipboard.writeText(txt);
-      setStatus("Copied. Now paste into WhatsApp group.");
-      return true;
-    }catch{
-      setStatus("Copy failed. Please select text manually.");
-      return false;
-    }
-  }
-
-  function openWhatsApp(prefillText){
-    // Opens WhatsApp with prefilled message. For groups, user still picks group & presses send.
-    location.href = "https://wa.me/?text=" + encodeURIComponent(prefillText);
-  }
-
-  // --------- Init ----------
-  $("tpl").textContent = notesTemplate();
-  $("date").value = isoDateLocal(new Date());
-  $("filter").value = DEFAULT_FILTER;
-
-  window.addEventListener("load", () => {
-    if(!window.google || !google.accounts || !google.accounts.oauth2){
-      setStatus("Google library not loaded (check internet).");
-      return;
-    }
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: (resp) => {
-        if(resp.error){ setStatus(resp.error); return; }
-        accessToken = resp.access_token;
-        setStatus("Authorized. Tap Load.");
+      for(const ev of groups[d]){
+        box.appendChild(eventCard(ev));
       }
-    });
-    setStatus("Ready. Tap Authorize Google.");
+    }
+  } else {
+    for(const ev of items){
+      box.appendChild(eventCard(ev));
+    }
+  }
+
+  setPreview();
+}
+
+function eventCard(ev){
+  const div = document.createElement("div");
+  div.className = "event";
+  div.innerHTML = `
+    <div class="eventTime">${escapeHtml(fmtTime(ev))}</div>
+    <div class="eventMain">
+      <div class="eventTitle">${escapeHtml(ev.summary || "(No title)")}</div>
+      <div class="eventMeta">
+        ${ev.location ? `📍 ${escapeHtml(ev.location)}<br>` : ""}
+        ${ev.description ? `📝 ${escapeHtml(ev.description.slice(0,180))}` : ""}
+      </div>
+    </div>
+    <div class="actions">
+      <button class="secondary small" data-edit="${escapeHtml(ev.id)}">Edit</button>
+      <button class="secondary small" data-copy="${escapeHtml(ev.id)}">Copy</button>
+    </div>
+  `;
+  return div;
+}
+
+async function load(){
+  setStatus("Loading…");
+  try{
+    const dateStr = $("datePick").value;
+    const {items} = await fetchEvents(dateStr);
+    renderEvents(items);
+    setStatus(`Loaded ${items.length} task(s). Tap item to edit.`);
+  }catch(e){
+    renderEvents([]);
+    setStatus(e.message);
+  }
+}
+
+// -------- Calendar Write (Create/Update/Delete) --------
+function buildEventPayload(dateStr){
+  const title = (($("fTitle").value || "").trim());
+  const loc = (($("fLoc").value || "").trim());
+  const notes = (($("fNotes").value || "").trim());
+  const startT = ($("fStart").value || "").trim();
+  const endT = ($("fEnd").value || "").trim();
+
+  const summary = (TITLE_PREFIX ? (TITLE_PREFIX + " ") : "") + title;
+
+  if(!startT){
+    // All-day event
+    return {
+      summary,
+      location: loc || undefined,
+      description: notes || undefined,
+      start: { date: dateStr },
+      end: { date: addDays(dateStr, 1) } // all-day end is exclusive
+    };
+  }
+
+  // Timed event
+  const [y,m,d] = dateStr.split("-").map(Number);
+  const [sh, sm] = startT.split(":").map(Number);
+  const start = new Date(y, m-1, d, sh, sm || 0, 0);
+
+  let end;
+  if(endT){
+    const [eh, em] = endT.split(":").map(Number);
+    end = new Date(y, m-1, d, eh, em || 0, 0);
+  } else {
+    end = new Date(start.getTime() + DEFAULT_DURATION_MIN*60000);
+  }
+
+  return {
+    summary,
+    location: loc || undefined,
+    description: notes || undefined,
+    start: { dateTime: start.toISOString() },
+    end: { dateTime: end.toISOString() }
+  };
+}
+
+async function createEvent(){
+  const dateStr = $("datePick").value;
+  const payload = buildEventPayload(dateStr);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+  await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
+}
+
+async function updateEvent(eventId){
+  const dateStr = $("datePick").value;
+  const payload = buildEventPayload(dateStr);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
+  await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
+}
+
+async function deleteEvent(eventId){
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
+  await apiFetch(url, { method:"DELETE" });
+}
+
+
+async function copyEventToDate(ev, targetDateStr){
+  // Build a new event payload based on existing event, but moved to target date
+  const base = {
+    summary: ev.summary,
+    location: ev.location || undefined,
+    description: ev.description || undefined
+  };
+
+  if(ev.start?.date){ // all-day
+    const startDate = targetDateStr;
+    const endDate = addDays(targetDateStr, 1);
+    const payload = Object.assign({}, base, { start: {date: startDate}, end: {date: endDate} });
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+    await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
+    return;
+  }
+
+  // timed event: keep time-of-day, change date
+  const s = new Date(ev.start.dateTime);
+  const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
+
+  const [y,m,d] = targetDateStr.split("-").map(Number);
+
+  const start = new Date(y, m-1, d, s.getHours(), s.getMinutes(), 0);
+  let end;
+  if(e){
+    // keep same duration
+    const dur = e.getTime() - s.getTime();
+    end = new Date(start.getTime() + dur);
+  }else{
+    end = new Date(start.getTime() + DEFAULT_DURATION_MIN*60000);
+  }
+
+  const payload = Object.assign({}, base, {
+    start: { dateTime: start.toISOString() },
+    end: { dateTime: end.toISOString() }
   });
 
-  $("authBtn").onclick = () => {
-    if(!tokenClient) return;
-    // Must be triggered by user click
-    tokenClient.requestAccessToken({ prompt: "" });
-  };
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+  await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
+}
 
-  $("loadBtn").onclick = load;
-  $("todayBtn").onclick = () => { $("date").value = isoDateLocal(new Date()); load(); };
+// -------- Modal helpers --------
+function openModal(mode, ev=null){
+  $("modalBackdrop").style.display = "block";
+  if(mode === "new"){
+    editingEventId = null;
+    $("modalTitle").textContent = "New Job / 新增工作";
+    $("delBtn").style.display = "none";
+    $("fStart").value = "";
+    $("fEnd").value = "";
+    $("fTitle").value = DEFAULT_FILTER ? `${DEFAULT_FILTER}` : "";
+    $("fLoc").value = "";
+    $("fNotes").value = "";
+  } else {
+    editingEventId = ev.id;
+    $("modalTitle").textContent = "Edit Job / 编辑工作";
+    $("delBtn").style.display = "inline-block";
 
-  $("copyBtn").onclick = () => copyText($("preview").textContent);
-  $("waBtn").onclick = () => openWhatsApp($("preview").textContent);
+    $("fTitle").value = (ev.summary || "");
+    $("fLoc").value = (ev.location || "");
+    $("fNotes").value = (ev.description || "");
 
-  $("copyTplBtn").onclick = () => copyText(notesTemplate());
+    // time
+    if(ev.start?.dateTime){
+      const s = new Date(ev.start.dateTime);
+      const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
+      $("fStart").value = s.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:false});
+      $("fEnd").value = e ? e.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:false}) : "";
+    } else {
+      $("fStart").value = "";
+      $("fEnd").value = "";
+    }
+  }
+}
 
-  $("sendBtn").onclick = async () => {
-    // Load first then copy+open
-    await load();
-    const msg = $("preview").textContent;
-    await copyText(msg);
-    openWhatsApp(msg);
-  };
+function closeModal(){
+  $("modalBackdrop").style.display = "none";
+}
 
-  $("lang").onchange = setPreview;
+function ensureJobTag(){
+  const v = $("fTitle").value || "";
+  if(v.includes("#JOB")) return;
+  $("fTitle").value = (v ? (v + " ") : "") + "#JOB";
+}
 
-  // Register service worker (offline shell)
+// -------- WhatsApp helpers --------
+async function copyText(txt){
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast("Copied");
+    return true;
+  }catch{
+    toast("Copy failed");
+    return false;
+  }
+}
+
+function openWhatsApp(txt){
+  location.href = "https://wa.me/?text=" + encodeURIComponent(txt);
+}
+
+// -------- Auth --------
+function initAuth(){
+  if(!window.google || !google.accounts || !google.accounts.oauth2){
+    setStatus("Google library not loaded (check internet).");
+    return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if(resp.error){ setStatus(resp.error); return; }
+      accessToken = resp.access_token;
+      setStatus("Authorized. Tap Load.");
+      toast("Authorized");
+    }
+  });
+  setStatus("Ready. Tap Authorize.");
+}
+
+// Logout just forgets token in app (Google session may still exist in browser)
+function logout(){
+  accessToken = null;
+  lastEvents = [];
+  $("events").innerHTML = "";
+  $("preview").textContent = "";
+  setStatus("Logged out.");
+  toast("Logged out");
+}
+
+// -------- Init UI --------
+$("tpl").textContent = notesTemplate();
+$("fNotes").placeholder = notesTemplate();
+
+$("datePick").value = isoDateLocal(new Date());
+$("filter").value = DEFAULT_FILTER;
+
+window.addEventListener("load", () => {
+  initAuth();
+  // Service worker
   if("serviceWorker" in navigator){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});
   }
+});
+
+// Buttons
+$("authBtn").onclick = () => {
+  if(!tokenClient) return;
+  tokenClient.requestAccessToken({ prompt: "" });
+};
+
+$("logoutBtn").onclick = logout;
+
+$("loadBtn").onclick = load;
+
+$("todayBtn").onclick = () => {
+  $("datePick").value = isoDateLocal(new Date());
+  load();
+};
+
+$("prevBtn").onclick = () => { $("datePick").value = addDays($("datePick").value, -1); load(); };
+$("nextBtn").onclick = () => { $("datePick").value = addDays($("datePick").value, +1); load(); };
+
+$("viewSel").onchange = load;
+$("lang").onchange = setPreview;
+
+$("newBtn").onclick = () => openModal("new");
+$("closeModalBtn").onclick = closeModal;
+$("modalBackdrop").addEventListener("click", (e)=>{ if(e.target === $("modalBackdrop")) closeModal(); });
+
+$("insertTplBtn").onclick = ()=>{
+  const cur = ($("fNotes").value || "").trim();
+  $("fNotes").value = cur ? (cur + "\n\n" + notesTemplate()) : notesTemplate();
+  toast("Template inserted");
+};
+
+$("addSlotBtn").onclick = ()=>{
+  const cur = ($("fNotes").value || "").trim();
+  // Add another slot block below (multi slot)
+  $("fNotes").value = cur ? (cur + "\n\n" + notesTemplate()) : notesTemplate();
+  toast("Slot added");
+};
+
+$("addJobTagBtn").onclick = ()=>{ ensureJobTag(); toast("#JOB added"); };
+
+$("saveBtn").onclick = async ()=>{
+  setStatus("Saving…");
+  try{
+    if(!accessToken) throw new Error("Not authorized. Tap Authorize first.");
+    if(editingEventId){
+      await updateEvent(editingEventId);
+      toast("Updated");
+    } else {
+      await createEvent();
+      toast("Saved");
+    }
+    closeModal();
+    await load();
+  }catch(e){
+    setStatus(e.message);
+  }
+};
+
+$("delBtn").onclick = async ()=>{
+  if(!editingEventId) return;
+  if(!confirm("Delete this job? / 删除这个工作？")) return;
+  setStatus("Deleting…");
+  try{
+    await deleteEvent(editingEventId);
+    toast("Deleted");
+    closeModal();
+    await load();
+  }catch(e){
+    setStatus(e.message);
+  }
+};
+
+// Edit click
+$("events").addEventListener("click", (e)=>{
+  const editBtn = e.target.closest("button[data-edit]");
+  const copyBtn = e.target.closest("button[data-copy]");
+
+  if(copyBtn){
+    const id = copyBtn.getAttribute("data-copy");
+    const ev = lastEvents.find(x=> x.id === id);
+    if(!ev) return;
+    const target = prompt("Copy to date (YYYY-MM-DD): / 复制到日期 (YYYY-MM-DD):", $("datePick").value);
+    if(!target) return;
+    setStatus("Copying…");
+    copyEventToDate(ev, target.trim())
+      .then(()=>{ toast("Copied"); setStatus("Copied. Tap Load to refresh."); })
+      .catch(err=>{ setStatus(err.message); });
+    return;
+  }
+
+  if(editBtn){
+    const id = editBtn.getAttribute("data-edit");
+    const ev = lastEvents.find(x=> x.id === id);
+    if(ev) openModal("edit", ev);
+  }
+});
+
+$("copyTplBtn").onclick = ()=> copyText(notesTemplate());
+
+$("copyMsgBtn").onclick = ()=> copyText($("preview").textContent);
+$("openWaBtn").onclick = ()=> openWhatsApp($("preview").textContent);
+
+$("sendBtn").onclick = async ()=>{
+  // Send today quickly
+  $("datePick").value = isoDateLocal(new Date());
+  await load();
+  const msg = $("preview").textContent;
+  await copyText(msg);
+  openWhatsApp(msg);
+};
+
+// Default: not auto loading until authorized
+setPreview();
 </script>
 </body>
 </html>
