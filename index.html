@@ -479,6 +479,26 @@
 </head>
 
 <body>
+
+<div id="buildBanner" style="
+  position:sticky;top:0;z-index:9999;
+  background:#111827;color:#fff;
+  padding:10px 12px;
+  display:flex;gap:10px;align-items:center;justify-content:space-between;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+">
+  <div style="font-weight:900;">BUILD v16 2025-12-26 08:23 UTC</div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button id="clickTest" style="
+      background:#f59e0b;color:#111827;
+      border:0;border-radius:10px;
+      padding:8px 12px;font-weight:900;cursor:pointer;
+    " onclick="alert('CLICK WORKS'); document.getElementById('buildBanner').style.background='#16a34a';">
+      TEST CLICK
+    </button>
+  </div>
+</div>
+
   <div class="toast" id="toast"></div>
 
   <div class="topbar">
@@ -564,7 +584,7 @@
 
 
     <div class="divider"></div>
-    <div id="status" class="muted">Ready.</div>
+    <div id="status" class="muted">Ready. (BUILD v16 2025-12-26 08:23 UTC)</div>
   </div>
 
   <div class="card">
@@ -1453,7 +1473,7 @@ function initAuth(){
       await load();
     }
   });
-  setStatus("Ready. Tap Authorize.");
+  setStatus("Ready. (BUILD v16 2025-12-26 08:23 UTC) Tap Authorize.");
 }
 
 function logout(){
