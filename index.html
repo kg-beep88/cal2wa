@@ -123,6 +123,43 @@
     }
     .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:#fff}
     .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; background:#fff; border:1px solid var(--line); padding:2px 6px; border-radius:8px;}
+  
+    .monthGrid{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap:10px;
+    }
+    .dayCell{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#fff;
+      padding:10px;
+      min-height:120px;
+    }
+    .dayTop{
+      display:flex;justify-content:space-between;align-items:center;
+      font-weight:900;
+      margin-bottom:8px;
+    }
+    .dayNum{color:var(--blue2)}
+    .chip{
+      display:block;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:8px 10px;
+      font-size:12px;
+      background:#f8fafc;
+      margin-top:6px;
+      cursor:grab;
+      user-select:none;
+      white-space:pre-wrap;
+    }
+    .chip:active{cursor:grabbing}
+    .dropHint{
+      outline:2px dashed rgba(37,99,235,.35);
+      outline-offset:2px;
+    }
+
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="./config.js"></script>
@@ -146,6 +183,7 @@
           <select id="viewSel" style="width:auto;padding:10px 12px;font-size:15px;border-radius:999px">
             <option value="day" selected>Day</option>
             <option value="week">Week</option>
+            <option value="month">Month</option>
           </select>
         </span>
         <button class="secondary small" id="installTipBtn">Install</button>
@@ -157,7 +195,7 @@
     <div class="row" style="justify-content:space-between">
       <div>
         <div class="sectionTitle">Schedule</div>
-        <div class="muted">Use <span class="kbd">+</span> to add jobs. Tap a job to Edit / Copy / Delete.</div>
+        <div class="muted">Use <span class="kbd">+</span> to add jobs. Tap a job to Edit / Copy / Delete. Month view: drag to move/copy, double-tap day to add.</div>
       </div>
       <div class="row">
         <button class="secondary small" id="todayBtn">Today</button>
@@ -199,6 +237,8 @@
       </div>
     </div>
 
+    <div id="monthGrid" style="display:none;"></div>
+
     <div id="events"></div>
 
     <div class="divider"></div>
@@ -233,7 +273,7 @@
       </div>
 
       <label>Address</label>
-      <input id="fAddr" placeholder="Address: ________" />
+      <input id="fAddr" placeholder="Address: " />
 
       <div class="divider"></div>
       <div class="sectionTitle">SCOPE</div>
@@ -493,12 +533,193 @@ async function fetchEvents(){
   return { items, range };
 }
 
+function monthRange(dateStr){
+  const [y,m,_d] = dateStr.split("-").map(Number);
+  const first = new Date(y, m-1, 1, 0,0,0);
+  const next = new Date(y, m, 1, 0,0,0);
+  const from = isoDateLocal(first);
+  const to = isoDateLocal(new Date(next.getTime() - 86400000)); // last day of month
+  return { first, next, from, to };
+}
+
+async function fetchEventsMonth(dateStr){
+  const mr = monthRange(dateStr);
+  const timeMin = rfc3339(mr.first);
+  const timeMax = rfc3339(mr.next);
+  const params = new URLSearchParams({
+    timeMin, timeMax,
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "2500"
+  });
+  if(DEFAULT_FILTER) params.set("q", DEFAULT_FILTER);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?` + params.toString();
+  const data = await apiFetch(url);
+  const items = (data.items || []).filter(ev => ev.status !== "cancelled");
+  return { items, range: mr };
+}
+
+function chipLabel(ev){
+  const desc = (ev.description || "").trim();
+  const addr = parseDescription(desc).addr || ev.location || "";
+  const t = ev.start?.dateTime ? fmtTime(ev) : "ALL DAY";
+  // show short one-line chip
+  return `${t} • ${addr}`.trim();
+}
+
+function groupByDate(items){
+  const g = {};
+  for(const ev of items){
+    const d = startDateLabel(ev);
+    if(!d) continue;
+    g[d] = g[d] || [];
+    g[d].push(ev);
+  }
+  for(const k of Object.keys(g)){
+    g[k].sort((a,b)=> (a.start?.dateTime || a.start?.date || "").localeCompare(b.start?.dateTime || b.start?.date || ""));
+  }
+  return g;
+}
+
+async function moveEventToDate(ev, targetDateStr){
+  // Move existing event to target date, preserving time/duration
+  if(ev.start?.date){
+    const payload = {
+      summary: ev.summary,
+      location: ev.location || undefined,
+      description: ev.description || undefined,
+      start: { date: targetDateStr },
+      end: { date: addDays(targetDateStr, 1) }
+    };
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
+    await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
+    return;
+  }
+
+  const s = new Date(ev.start.dateTime);
+  const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
+  const [y,m,d] = targetDateStr.split("-").map(Number);
+  const start = new Date(y, m-1, d, s.getHours(), s.getMinutes(), 0);
+  const dur = e ? (e.getTime() - s.getTime()) : (DEFAULT_DURATION_MIN*60000);
+  const end = new Date(start.getTime() + dur);
+
+  const payload = {
+    summary: ev.summary,
+    location: ev.location || undefined,
+    description: ev.description || undefined,
+    start: { dateTime: start.toISOString() },
+    end: { dateTime: end.toISOString() }
+  };
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
+  await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
+}
+
+function renderMonth(items, range){
+  $("events").style.display = "none";
+  const mg = $("monthGrid");
+  mg.style.display = "block";
+  mg.className = "monthGrid";
+  mg.innerHTML = "";
+
+  lastEvents = items;
+  const grouped = groupByDate(items);
+
+  // month grid starts on Monday
+  const first = range.first;
+  const firstDow = first.getDay(); // 0 Sun .. 6 Sat
+  const offset = (firstDow === 0) ? 6 : (firstDow - 1); // days back to Monday
+  const gridStart = new Date(first);
+  gridStart.setDate(first.getDate() - offset);
+
+  // 6 rows x 7 days
+  for(let i=0;i<42;i++){
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate() + i);
+    const dateStr = isoDateLocal(d);
+
+    const cell = document.createElement("div");
+    cell.className = "dayCell";
+    cell.setAttribute("data-day", dateStr);
+
+    const inMonth = (d.getMonth() === first.getMonth());
+    cell.style.opacity = inMonth ? "1" : ".55";
+
+    const top = document.createElement("div");
+    top.className = "dayTop";
+    top.innerHTML = `<span class="dayNum">${dateStr.slice(8,10)}</span><span class="muted">${dateStr}</span>`;
+    cell.appendChild(top);
+
+    const dayEvents = grouped[dateStr] || [];
+    for(const ev of dayEvents){
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.draggable = true;
+      chip.setAttribute("data-id", ev.id);
+      chip.textContent = chipLabel(ev);
+      chip.addEventListener("dragstart", (e)=>{
+        e.dataTransfer.setData("text/plain", ev.id);
+        e.dataTransfer.effectAllowed = "move";
+      });
+      chip.addEventListener("click", ()=>{
+        openModal("edit", ev);
+      });
+      cell.appendChild(chip);
+    }
+
+    // Drop handlers
+    cell.addEventListener("dragover", (e)=>{ e.preventDefault(); cell.classList.add("dropHint"); });
+    cell.addEventListener("dragleave", ()=> cell.classList.remove("dropHint"));
+    cell.addEventListener("drop", async (e)=>{
+      e.preventDefault();
+      cell.classList.remove("dropHint");
+      const id = e.dataTransfer.getData("text/plain");
+      const ev = lastEvents.find(x=> x.id === id);
+      if(!ev) return;
+
+      const action = prompt("Type M = Move, C = Copy (default M):", "M");
+      const act = (action || "M").trim().toUpperCase();
+      try{
+        setStatus(act === "C" ? "Copying…" : "Moving…");
+        if(act === "C"){
+          await copyEventToDate(ev, dateStr);
+          toast("Copied");
+        }else{
+          await moveEventToDate(ev, dateStr);
+          toast("Moved");
+        }
+        await load();
+      }catch(err){
+        setStatus(err.message);
+      }
+    });
+
+    // Click empty cell to add new on that day
+    cell.addEventListener("dblclick", ()=>{
+      $("datePick").value = dateStr;
+      openModal("new");
+    });
+
+    mg.appendChild(cell);
+  }
+}
+
 async function load(){
   setStatus("Loading…");
   try{
     const dateStr = $("datePick").value;
     const view = $("viewSel").value;
+
+    if(view === "month"){
+      const { items, range } = await fetchEventsMonth(dateStr);
+      renderMonth(items, range);
+      $("preview").textContent = buildWhatsAppForEvents(`KG DEMOLISH MONTH SCHEDULE: ${range.from} → ${range.to}`, items);
+      setStatus(`Loaded ${items.length} job(s).`);
+      return;
+    }
+
     const { items, range } = await fetchEvents();
+    $("monthGrid").style.display = "none";
+    $("events").style.display = "block";
     renderList(items, view);
 
     if(view === "week"){
