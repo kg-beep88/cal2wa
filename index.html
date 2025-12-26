@@ -514,6 +514,11 @@
 
       <div class="grid2" style="margin-top:10px">
         <div>
+          <label>Job date</label>
+          <input id="fDate" type="date" />
+          <div class="muted">Default = selected date.</div>
+        </div>
+        <div>
           <label>Time (optional)</label>
           <input id="fTime" type="time" />
           <div class="muted">Leave blank = ALL DAY.</div>
@@ -532,16 +537,16 @@
       <div class="sectionTitle">SCOPE</div>
 
       <label>Remove</label>
-      <input id="fRemove" placeholder="Remove : __________" />
+      <input id="fRemove" placeholder="Remove :" />
 
       <label>Keep</label>
-      <input id="fKeep" placeholder="Keep : __________" />
+      <input id="fKeep" placeholder="Keep :" />
 
       <label>Protect</label>
-      <input id="fProtect" placeholder="Protect : _______" />
+      <input id="fProtect" placeholder="Protect :" />
 
       <label>Disposal</label>
-      <input id="fDisposal" placeholder="Disposal : ____________________" />
+      <input id="fDisposal" placeholder="Disposal :" />
 
       <div class="row" style="margin-top:12px;justify-content:space-between">
         <div class="row">
@@ -1033,11 +1038,13 @@ async function load(){
 }
 
 // ---- CRUD ----
-function currentDate(){ return $("datePick").value; }
+function currentDate(){ return ($("fDate") && $("fDate").value) ? $("fDate").value : $("datePick").value; }
 
 function openModal(mode, ev=null){
   $("modalBackdrop").style.display = "block";
   $("fCopyDate").value = "";
+  if($("fDate")) $("fDate").value = $("datePick").value;
+if($("fDate")) $("fDate").value = $("datePick").value;
   if(mode === "new"){
     $("modalTitle").textContent = "New Job";
     $("delBtn").style.display = "none";
@@ -1061,6 +1068,9 @@ function openModal(mode, ev=null){
     $("fTime").value = "";
   }
 
+  if($("fDate")) $("fDate").value = startDateLabel(ev) || $("datePick").value;
+  if($("fDate")) $("fDate").value = startDateLabel(ev) || $("datePick").value;
+
   const fields = parseDescription(ev.description || "");
   $("fAddr").value = fields.addr || "";
   $("fRemove").value = fields.remove || "";
@@ -1082,7 +1092,7 @@ function buildEventPayloadForDate(dateStr){
   };
 
   const description = buildDescription(fields);
-  const summary = `${TITLE_PREFIX}${DEFAULT_FILTER}`.trim();
+  const summary = `${TITLE_PREFIX}${(fields.addr || "Job").trim()} ${DEFAULT_FILTER}`.trim();
   const location = fields.addr || undefined;
 
   if(!time){
@@ -1139,6 +1149,27 @@ function openWhatsApp(txt){
   location.href = "https://wa.me/?text=" + encodeURIComponent(txt);
 }
 
+
+
+async function fetchEventsForDayOnly(dateStr){
+  const r = rfcRangeForDay(dateStr);
+  const params = new URLSearchParams({
+    timeMin: r.timeMin,
+    timeMax: r.timeMax,
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "250"
+  });
+  if(DEFAULT_FILTER) params.set("q", DEFAULT_FILTER);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?` + params.toString();
+  const data = await apiFetch(url);
+  return (data.items || []).filter(ev => ev.status !== "cancelled");
+}
+
+async function buildDayWhatsAppText(dateStr){
+  const items = await fetchEventsForDayOnly(dateStr);
+  return buildWhatsAppForEvents(`KG DEMOLISH DAILY SCHEDULE: ${dateStr}`, items);
+}
 // ---- Auth ----
 function initAuth(){
   if(!window.google || !google.accounts || !google.accounts.oauth2){
@@ -1187,9 +1218,30 @@ $("nextBtn").onclick = ()=>{ $("datePick").value = addDays($("datePick").value, 
 
 $("loadBtn").onclick = ()=>{ if(!accessToken){ toast("Tap Authorize first"); return; } load(); };
 
-$("copyWaBtn").onclick = async ()=>{ if(!accessToken){ toast("Tap Authorize first"); return; } if(!$("preview").textContent) await load(); copyText($("preview").textContent); };
-$("openWaBtn").onclick = async ()=>{ if(!accessToken){ toast("Tap Authorize first"); return; } if(!$("preview").textContent) await load(); openWhatsApp($("preview").textContent); };
 
+$("copyWaBtn").onclick = async ()=>{
+  try{
+    if(!accessToken){ toast("Tap Authorize first"); return; }
+    const dateStr = $("datePick").value;
+    setStatus("Preparing WhatsApp…");
+    const txt = await buildDayWhatsAppText(dateStr);
+    $("preview").textContent = txt;
+    await copyText(txt);
+    setStatus("Copied for " + dateStr);
+  }catch(e){ setStatus(e.message); }
+};
+
+$("openWaBtn").onclick = async ()=>{
+  try{
+    if(!accessToken){ toast("Tap Authorize first"); return; }
+    const dateStr = $("datePick").value;
+    setStatus("Preparing WhatsApp…");
+    const txt = await buildDayWhatsAppText(dateStr);
+    $("preview").textContent = txt;
+    setStatus("Opening WhatsApp…");
+    openWhatsApp(txt);
+  }catch(e){ setStatus(e.message); }
+};
 $("newBtn").onclick = ()=>{ if(!accessToken){ toast("Tap Authorize first"); return; } openModal("new"); };
 $("closeModalBtn").onclick = closeModal;
 $("modalBackdrop").addEventListener("click", (e)=>{ if(e.target === $("modalBackdrop")) closeModal(); });
@@ -1204,6 +1256,8 @@ $("saveBtn").onclick = async ()=>{
     if(!accessToken) throw new Error("Not authorized. Tap Authorize.");
     setStatus("Saving…");
     const dateStr = currentDate();
+    $("datePick").value = dateStr;
+$("datePick").value = dateStr;
     const eventId = $("modalBackdrop").getAttribute("data-event-id");
     if(eventId) { await updateEvent(eventId, dateStr); toast("Updated"); }
     else { await createEvent(dateStr); toast("Saved"); }
