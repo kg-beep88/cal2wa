@@ -1,6 +1,6 @@
 {
-  "name": "Work Plan Calendar → WhatsApp",
-  "short_name": "WorkPlan",
+  "name": "KG Demolish Calendar",
+  "short_name": "KG Calendar",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f8fafc",

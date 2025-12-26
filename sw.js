@@ -1,4 +1,4 @@
-const CACHE = "workplan-v2";
+const CACHE = "kg-demolish-v1";
 const ASSETS = [
   "./",
   "./index.html",

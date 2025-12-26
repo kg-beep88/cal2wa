@@ -3,11 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Work Plan Calendar → WhatsApp</title>
+  <title>KG Demolish Calendar</title>
   <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="./manifest.webmanifest" />
 
-  <!-- Bright, big, iPhone-friendly UI -->
   <style>
     :root{
       --bg:#f8fafc;
@@ -22,7 +21,6 @@
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt)}
-    .wrap{max-width:980px;margin:0 auto;padding:14px 14px 110px}
     .topbar{
       position:sticky; top:0; z-index:10;
       background:rgba(248,250,252,.92); backdrop-filter: blur(10px);
@@ -37,17 +35,17 @@
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .card{
       background:var(--card); border:1px solid var(--line);
-      border-radius:var(--radius); padding:14px; margin:12px 0; box-shadow:var(--shadow);
+      border-radius:var(--radius); padding:14px; margin:12px auto; box-shadow:var(--shadow);
+      max-width:980px;
     }
-    .sectionTitle{font-weight:900;font-size:14px;margin:0 0 8px}
     .muted{color:var(--muted);font-size:12px;line-height:1.35}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:#fff}
+    .sectionTitle{font-weight:900;font-size:14px;margin:0 0 8px}
     input,select,textarea{
       width:100%;
       border:1px solid var(--line);
       border-radius:14px;
       padding:12px;
-      font-size:16px; /* big for iPhone */
+      font-size:16px;
       background:#fff;
       color:var(--txt);
       outline:none;
@@ -67,23 +65,20 @@
     button.small{padding:10px 12px;font-size:15px}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media (max-width: 760px){ .grid2{grid-template-columns:1fr} }
+    .divider{border-top:1px dashed var(--line);margin:10px 0}
     .event{
       border:1px solid var(--line);
       border-radius:16px;
       padding:12px;
       background:#fff;
       display:flex;gap:12px;justify-content:space-between;align-items:flex-start;
+      margin-top:10px;
     }
-    .eventTime{
-      min-width:78px;
-      font-weight:900;
-      color:var(--blue2);
-    }
+    .eventTime{min-width:78px;font-weight:900;color:var(--blue2)}
     .eventMain{flex:1}
     .eventTitle{font-weight:900}
-    .eventMeta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+    .eventMeta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35;white-space:pre-wrap}
     .actions{display:flex;gap:8px;flex-wrap:wrap}
-    .divider{border-top:1px dashed var(--line);margin:10px 0}
     pre{
       white-space:pre-wrap;
       background:#f1f5f9;
@@ -120,9 +115,15 @@
       z-index:20;
     }
     .fixedInner{max-width:980px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+    .plus{
+      width:44px;height:44px;border-radius:16px;
+      display:grid;place-items:center;
+      font-size:24px; line-height:1; font-weight:900;
+      padding:0;
+    }
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:#fff}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; background:#fff; border:1px solid var(--line); padding:2px 6px; border-radius:8px;}
   </style>
-
-  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="./config.js"></script>
 </head>
@@ -133,117 +134,85 @@
   <div class="topbar">
     <div class="topbarInner">
       <div class="brand">
-        <div class="logo">W</div>
+        <div class="logo">KG</div>
         <div>
-          <div class="title">Work Plan</div>
-          <div class="subtitle">Calendar view + template + WhatsApp message</div>
+          <div class="title">KG Demolish Calendar</div>
+          <div class="subtitle">Free PWA (iPhone + Desktop) • Sync (Google Calendar) • WhatsApp daily schedule</div>
         </div>
       </div>
-
       <div class="row">
         <span class="pill">
-          <span style="font-weight:900;color:var(--muted);font-size:12px">Language</span>
-          <select id="lang" style="width:auto;padding:10px 12px;font-size:15px;border-radius:999px">
-            <option value="bi" selected>EN + 中文</option>
-            <option value="en">English</option>
-            <option value="zh">中文</option>
+          <span class="muted" style="font-weight:900">View</span>
+          <select id="viewSel" style="width:auto;padding:10px 12px;font-size:15px;border-radius:999px">
+            <option value="day" selected>Day</option>
+            <option value="week">Week</option>
           </select>
         </span>
-
-        <button class="secondary small" id="authBtn">Authorize</button>
-        <button class="secondary small" id="logoutBtn">Logout</button>
+        <button class="secondary small" id="installTipBtn">Install</button>
       </div>
     </div>
   </div>
 
-  <div class="wrap">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <div class="sectionTitle">Calendar view (like Google Calendar)</div>
-          <div class="muted">Pick date, view Day / Week, create or edit events with ready template.</div>
-        </div>
-        <div class="row">
-          <button class="secondary small" id="todayBtn">Today</button>
-          <button class="secondary small" id="prevBtn">◀</button>
-          <button class="secondary small" id="nextBtn">▶</button>
-        </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div class="sectionTitle">Schedule</div>
+        <div class="muted">Use <span class="kbd">+</span> to add jobs. Tap a job to Edit / Copy / Delete.</div>
       </div>
-
-      <div class="grid2" style="margin-top:10px">
-        <div>
-          <label>Date / 日期</label>
-          <input id="datePick" type="date" />
-        </div>
-        <div>
-          <label>View / 视图</label>
-          <select id="viewSel">
-            <option value="day" selected>Day (Agenda) / 今日列表</option>
-            <option value="week">Week / 一周</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid2" style="margin-top:10px">
-        <div>
-          <label>Filter keyword / 筛选关键词</label>
-          <input id="filter" placeholder="#JOB (recommended)" />
-          <div class="muted">Tip: put <b>#JOB</b> in Title or Notes to show only work items.</div>
-        </div>
-        <div>
-          <label>Actions / 操作</label>
-          <div class="row">
-            <button id="loadBtn" class="secondary">Load / 载入</button>
-            <button id="newBtn">New Job / 新增</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-      <div id="status" class="muted">Not authorized yet.</div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <div class="sectionTitle" id="listTitle">Tasks</div>
-          <div class="muted" id="listSub">Tap an item to edit.</div>
-        </div>
-        <div class="row">
-          <button class="secondary small" id="copyMsgBtn">Copy WhatsApp</button>
-          <button class="small" id="openWaBtn">Open WhatsApp</button>
-        </div>
-      </div>
-
-      <div id="events"></div>
-
-      <div class="divider"></div>
-      <div class="sectionTitle">WhatsApp message preview</div>
-      <pre id="preview"></pre>
-    </div>
-
-    <div class="card">
-      <div class="sectionTitle">Notes Template / 备注模板</div>
-      <div class="muted">Use this in Google Calendar Notes. One tap to copy.</div>
-      <pre id="tpl"></pre>
       <div class="row">
-        <button class="secondary" id="copyTplBtn">Copy template</button>
+        <button class="secondary small" id="todayBtn">Today</button>
+        <button class="secondary small" id="prevBtn">◀</button>
+        <button class="secondary small" id="nextBtn">▶</button>
+        <button class="plus" id="newBtn" title="Add">+</button>
       </div>
     </div>
 
-    <div class="muted">
-      Install on iPhone: open in Safari → Share → <b>Add to Home Screen</b>.
-      <br/>If Google login popup fails inside the Home Screen app, open the same link in Safari and authorize there first.
+    <div class="grid2" style="margin-top:10px">
+      <div>
+        <label>Date</label>
+        <input id="datePick" type="date" />
+      </div>
+      <div>
+        <label>Send daily schedule</label>
+        <div class="row">
+          <button class="secondary" id="loadBtn">Load</button>
+          <button class="secondary" id="copyWaBtn">Copy WhatsApp</button>
+          <button id="openWaBtn">Open WhatsApp</button>
+        </div>
+        <div class="muted">WhatsApp group: Copy → Paste → Send.</div>
+      </div>
     </div>
+
+    <div class="divider"></div>
+    <div id="status" class="muted">Ready.</div>
   </div>
 
-  <!-- Modal: Create/Edit Event -->
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div class="sectionTitle" id="listTitle">Jobs</div>
+        <div class="muted" id="listSub">Sorted by time. No time = ALL DAY.</div>
+      </div>
+      <div class="row">
+        <button class="secondary small" id="authTopBtn">Authorize</button>
+        <button class="secondary small" id="logoutTopBtn">Logout</button>
+      </div>
+    </div>
+
+    <div id="events"></div>
+
+    <div class="divider"></div>
+    <div class="sectionTitle">WhatsApp message preview</div>
+    <pre id="preview"></pre>
+  </div>
+
+  <!-- Modal -->
   <div class="modalBackdrop" id="modalBackdrop">
     <div class="modal">
       <div class="modalHead">
         <div>
           <h2 id="modalTitle">New Job</h2>
-          <div class="muted">Save directly into Google Calendar. Edit anytime.</div>
+          <div class="muted">Saved inside the app (export backup anytime).</div>
         </div>
         <div class="row">
           <button class="secondary small" id="closeModalBtn">Close</button>
@@ -252,31 +221,38 @@
 
       <div class="grid2" style="margin-top:10px">
         <div>
-          <label>Start time / 开始时间</label>
-          <input id="fStart" type="time" />
-          <div class="muted">Leave blank = all day.</div>
+          <label>Time (optional)</label>
+          <input id="fTime" type="time" />
+          <div class="muted">Leave blank = ALL DAY.</div>
         </div>
         <div>
-          <label>End time / 结束时间</label>
-          <input id="fEnd" type="time" />
-          <div class="muted">Leave blank = auto duration.</div>
+          <label>Copy to date (optional)</label>
+          <input id="fCopyDate" type="date" />
+          <div class="muted">If filled, Save will also copy to that date.</div>
         </div>
       </div>
 
-      <label>Title / 标题</label>
-      <input id="fTitle" placeholder="510 Thomson – Remove Wall – BR2 / 拆墙-房2 #JOB" />
+      <label>Address</label>
+      <input id="fAddr" placeholder="Address: ________" />
 
-      <label>Location (Address) / 地址</label>
-      <input id="fLoc" placeholder="510 Thomson Rd #05-XX, Meet at Guardhouse / 保安处集合" />
+      <div class="divider"></div>
+      <div class="sectionTitle">SCOPE</div>
 
-      <label>Notes / 备注</label>
-      <textarea id="fNotes" placeholder=""></textarea>
+      <label>Remove</label>
+      <input id="fRemove" placeholder="Remove : __________" />
+
+      <label>Keep</label>
+      <input id="fKeep" placeholder="Keep : __________" />
+
+      <label>Protect</label>
+      <input id="fProtect" placeholder="Protect : _______" />
+
+      <label>Disposal</label>
+      <input id="fDisposal" placeholder="Disposal : ____________________" />
 
       <div class="row" style="margin-top:12px;justify-content:space-between">
         <div class="row">
-          <button class="secondary" id="insertTplBtn">Insert template</button>
-          <button class="secondary" id="addSlotBtn">+ Slot</button>
-          <button class="secondary" id="addJobTagBtn">Add #JOB</button>
+          <button class="secondary" id="clearBtn">Clear</button>
         </div>
         <div class="row">
           <button class="danger" id="delBtn" style="display:none">Delete</button>
@@ -285,39 +261,38 @@
       </div>
 
       <div class="muted" style="margin-top:10px">
-        Tip: Keep Title + Location + Notes consistent. Then WhatsApp message becomes very clear.
+        Tip: Add many jobs in one day. Then press <b>Copy WhatsApp</b>.
       </div>
     </div>
   </div>
 
   <div class="fixedBottom">
     <div class="fixedInner">
-      <div class="muted" id="footer">Ready.</div>
+      <div class="muted">Install on iPhone: Safari → Share → <b>Add to Home Screen</b>.</div>
       <div class="row">
-        <button class="secondary" id="sendBtn">Send Today (copy+open)</button>
+        <button class="secondary" id="authBtn">Authorize</button>
+        <button class="secondary" id="logoutBtn">Logout</button>
       </div>
     </div>
   </div>
 
-<script>
-/* ===========================
-   Work Plan PWA v2 (Read + Write Google Calendar)
-   =========================== */
+  <script>
+/* ===============================
+   KG Demolish Calendar (SYNC via Google Calendar)
+   =============================== */
 
 const CFG = window.APP_CONFIG || {};
 const CLIENT_ID = CFG.CLIENT_ID || "PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com";
 const CALENDAR_ID = CFG.CALENDAR_ID || "primary";
-const DEFAULT_FILTER = (CFG.DEFAULT_FILTER ?? "#JOB").trim();
+const DEFAULT_FILTER = (CFG.DEFAULT_FILTER ?? "#KG").trim();
 const DEFAULT_DURATION_MIN = Number(CFG.DEFAULT_DURATION_MIN || 120);
-const TITLE_PREFIX = (CFG.TITLE_PREFIX ?? "").trim();
+const TITLE_PREFIX = (CFG.TITLE_PREFIX ?? "KG ").trim();
 
-// Read + Write scope
 const SCOPES = "https://www.googleapis.com/auth/calendar.events";
 
 let tokenClient = null;
 let accessToken = null;
 let lastEvents = [];
-let editingEventId = null;
 
 const $ = (id)=>document.getElementById(id);
 
@@ -328,71 +303,18 @@ function toast(msg){
   clearTimeout(toast._tm);
   toast._tm = setTimeout(()=> t.style.display="none", 1600);
 }
-
-function setStatus(msg){
-  $("status").textContent = msg;
-  $("footer").textContent = msg;
-}
+function setStatus(msg){ $("status").textContent = msg; }
 
 function isoDateLocal(d){
   const off = d.getTimezoneOffset();
   const d2 = new Date(d.getTime() - off*60000);
   return d2.toISOString().slice(0,10);
 }
-
 function addDays(dateStr, delta){
   const [y,m,d] = dateStr.split("-").map(Number);
   const dt = new Date(y, m-1, d+delta);
   return isoDateLocal(dt);
 }
-
-function notesTemplate(){
-  return `Address: ________
-SCOPE :
-Remove : __________
-Keep : __________
-Protect : _______
-Disposal : ____________________`;
-}
-
-function headerFor(dateStr){
-  const lang = $("lang").value;
-  if(lang==="en") return `DAILY PLAN: ${dateStr}`;
-  if(lang==="zh") return `每日安排: ${dateStr}`;
-  return `DAILY PLAN / 每日安排: ${dateStr}`;
-}
-
-function fmtTime(ev){
-  if(ev.start?.dateTime){
-    const dt = new Date(ev.start.dateTime);
-    return dt.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
-  }
-  return "ALL DAY";
-}
-
-function buildMessage(dateStr, events){
-  const lines = [headerFor(dateStr), ""];
-  if(!events.length){
-    const lang = $("lang").value;
-    lines.push(lang==="zh" ? "（当天没有安排）" : lang==="en" ? "(No tasks.)" : "(No tasks / 当天没有安排)");
-    return lines.join("\n");
-  }
-  for(const ev of events){
-    const t = fmtTime(ev);
-    const title = ev.summary || "(No title)";
-    lines.push(`• 【${t}】 ${title}`);
-    if(ev.location) lines.push(`📍 ${ev.location}`);
-    if(ev.description) lines.push(`📝 ${ev.description.trim()}`);
-    lines.push("--------------------------------");
-  }
-  return lines.join("\n");
-}
-
-function setPreview(){
-  const dateStr = $("datePick").value;
-  $("preview").textContent = buildMessage(dateStr, lastEvents);
-}
-
 function rfc3339(dt){
   const pad = (n)=> String(n).padStart(2,"0");
   const tz = -dt.getTimezoneOffset();
@@ -401,33 +323,30 @@ function rfc3339(dt){
   const mm = pad(Math.abs(tz)%60);
   return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}${sign}${hh}:${mm}`;
 }
-
 function rfcRangeForDay(dateStr){
   const [y,m,d] = dateStr.split("-").map(Number);
   const start = new Date(y, m-1, d, 0,0,0);
   const end = new Date(y, m-1, d+1, 0,0,0);
   return { timeMin: rfc3339(start), timeMax: rfc3339(end) };
 }
-
 function mondayOfWeek(dateStr){
   const [y,m,d] = dateStr.split("-").map(Number);
   const dt = new Date(y, m-1, d);
-  const day = dt.getDay(); // 0 Sun .. 6 Sat
+  const day = dt.getDay();
   const diffToMon = (day === 0) ? -6 : (1 - day);
   dt.setDate(dt.getDate() + diffToMon);
   return isoDateLocal(dt);
 }
-
 function rfcRangeForWeek(dateStr){
   const mon = mondayOfWeek(dateStr);
   const {timeMin} = rfcRangeForDay(mon);
-  const sunPlusOne = addDays(mon, 7);
-  const {timeMax} = rfcRangeForDay(sunPlusOne); // start of next week
-  return { timeMin, timeMax, mon };
+  const nextMon = addDays(mon, 7);
+  const {timeMax} = rfcRangeForDay(nextMon);
+  return { timeMin, timeMax, mon, nextMon };
 }
 
 async function apiFetch(url, opts={}){
-  if(!accessToken) throw new Error("Not authorized. Tap Authorize first.");
+  if(!accessToken) throw new Error("Not authorized. Tap Authorize.");
   const headers = Object.assign({}, opts.headers || {}, {
     "Authorization": `Bearer ${accessToken}`,
     "Accept": "application/json"
@@ -442,100 +361,72 @@ async function apiFetch(url, opts={}){
   return res.json();
 }
 
-// -------- Calendar Read --------
-async function fetchEvents(dateStr){
-  const view = $("viewSel").value;
-  const q = ($("filter").value || "").trim();
-
-  let range;
-  if(view === "week"){
-    range = rfcRangeForWeek(dateStr);
-  } else {
-    range = rfcRangeForDay(dateStr);
+function fmtTime(ev){
+  if(ev.start?.dateTime){
+    const dt = new Date(ev.start.dateTime);
+    return dt.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
   }
+  return "ALL DAY";
+}
+function startDateLabel(ev){
+  if(ev.start?.dateTime) return isoDateLocal(new Date(ev.start.dateTime));
+  if(ev.start?.date) return ev.start.date;
+  return "";
+}
 
-  const params = new URLSearchParams({
-    timeMin: range.timeMin,
-    timeMax: range.timeMax,
-    singleEvents: "true",
-    orderBy: "startTime",
-    maxResults: "250"
-  });
-  if(q) params.set("q", q);
+function parseDescription(desc){
+  const out = { addr:"", remove:"", keep:"", protect:"", disposal:"" };
+  const lines = (desc || "").split(/\r?\n/).map(x=>x.trim());
+  for(const line of lines){
+    const lower = line.toLowerCase();
+    if(lower.startsWith("address:")) out.addr = line.slice(8).trim();
+    else if(lower.startsWith("remove")) out.remove = line.split(":").slice(1).join(":").trim();
+    else if(lower.startsWith("keep")) out.keep = line.split(":").slice(1).join(":").trim();
+    else if(lower.startsWith("protect")) out.protect = line.split(":").slice(1).join(":").trim();
+    else if(lower.startsWith("disposal")) out.disposal = line.split(":").slice(1).join(":").trim();
+  }
+  return out;
+}
 
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?` + params.toString();
-  const data = await apiFetch(url);
-  const items = (data.items || []).filter(ev => ev.status !== "cancelled");
+function buildDescription(fields){
+  return [
+    `Address: ${fields.addr || "__________"}`,
+    `SCOPE :`,
+    `Remove : ${fields.remove || "__________"}`,
+    `Keep : ${fields.keep || "__________"}`,
+    `Protect : ${fields.protect || "_______"}`,
+    `Disposal : ${fields.disposal || "____________________"}`
+  ].join("\n");
+}
 
-  // For week view, group by date display
-  return { items, weekStart: range.mon };
+function buildWhatsAppForEvents(title, events){
+  const lines = [title, ""];
+  if(!events.length){
+    lines.push("(no job)");
+    return lines.join("\n");
+  }
+  for(const ev of events){
+    lines.push(`【${fmtTime(ev)}】`);
+    lines.push((ev.description || "").trim() || "(no details)");
+    lines.push("--------------------------------");
+  }
+  return lines.join("\n");
 }
 
 function escapeHtml(s){
   return (s||"").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 }
 
-function dateLabelFromEvent(ev){
-  // Prefer start.dateTime (local date), else start.date
-  const s = ev.start?.dateTime ? new Date(ev.start.dateTime) : (ev.start?.date ? new Date(ev.start.date + "T00:00:00") : null);
-  if(!s) return "";
-  return isoDateLocal(s);
-}
-
-function renderEvents(items){
-  lastEvents = items;
-  const box = $("events");
-  box.innerHTML = "";
-
-  if(!items.length){
-    box.innerHTML = `<div class="muted">No tasks found. Try change date or remove filter.</div>`;
-    setPreview();
-    return;
-  }
-
-  const view = $("viewSel").value;
-
-  if(view === "week"){
-    // group by date
-    const groups = {};
-    for(const ev of items){
-      const d = dateLabelFromEvent(ev) || "unknown";
-      groups[d] = groups[d] || [];
-      groups[d].push(ev);
-    }
-    const dates = Object.keys(groups).sort();
-    for(const d of dates){
-      const hdr = document.createElement("div");
-      hdr.className = "muted";
-      hdr.style.fontWeight = "900";
-      hdr.style.margin = "12px 0 8px";
-      hdr.textContent = d;
-      box.appendChild(hdr);
-
-      for(const ev of groups[d]){
-        box.appendChild(eventCard(ev));
-      }
-    }
-  } else {
-    for(const ev of items){
-      box.appendChild(eventCard(ev));
-    }
-  }
-
-  setPreview();
-}
-
 function eventCard(ev){
   const div = document.createElement("div");
   div.className = "event";
+  const desc = (ev.description || "").trim();
+  const addr = parseDescription(desc).addr || ev.location || "(No address)";
   div.innerHTML = `
     <div class="eventTime">${escapeHtml(fmtTime(ev))}</div>
     <div class="eventMain">
-      <div class="eventTitle">${escapeHtml(ev.summary || "(No title)")}</div>
-      <div class="eventMeta">
-        ${ev.location ? `📍 ${escapeHtml(ev.location)}<br>` : ""}
-        ${ev.description ? `📝 ${escapeHtml(ev.description.slice(0,180))}` : ""}
-      </div>
+      <div class="eventTitle">${escapeHtml(addr)}</div>
+      <div class="eventMeta">${escapeHtml(desc || "(no details)")}</div>
     </div>
     <div class="actions">
       <button class="secondary small" data-edit="${escapeHtml(ev.id)}">Edit</button>
@@ -545,185 +436,195 @@ function eventCard(ev){
   return div;
 }
 
-async function load(){
-  setStatus("Loading…");
-  try{
-    const dateStr = $("datePick").value;
-    const {items} = await fetchEvents(dateStr);
-    renderEvents(items);
-    setStatus(`Loaded ${items.length} task(s). Tap item to edit.`);
-  }catch(e){
-    renderEvents([]);
-    setStatus(e.message);
-  }
-}
-
-// -------- Calendar Write (Create/Update/Delete) --------
-function buildEventPayload(dateStr){
-  const title = (($("fTitle").value || "").trim());
-  const loc = (($("fLoc").value || "").trim());
-  const notes = (($("fNotes").value || "").trim());
-  const startT = ($("fStart").value || "").trim();
-  const endT = ($("fEnd").value || "").trim();
-
-  const summary = (TITLE_PREFIX ? (TITLE_PREFIX + " ") : "") + title;
-
-  if(!startT){
-    // All-day event
-    return {
-      summary,
-      location: loc || undefined,
-      description: notes || undefined,
-      start: { date: dateStr },
-      end: { date: addDays(dateStr, 1) } // all-day end is exclusive
-    };
-  }
-
-  // Timed event
-  const [y,m,d] = dateStr.split("-").map(Number);
-  const [sh, sm] = startT.split(":").map(Number);
-  const start = new Date(y, m-1, d, sh, sm || 0, 0);
-
-  let end;
-  if(endT){
-    const [eh, em] = endT.split(":").map(Number);
-    end = new Date(y, m-1, d, eh, em || 0, 0);
+function renderList(items, view){
+  lastEvents = items;
+  const box = $("events");
+  box.innerHTML = "";
+  if(view === "week"){
+    const groups = {};
+    for(const ev of items){
+      const d = startDateLabel(ev) || "unknown";
+      groups[d] = groups[d] || [];
+      groups[d].push(ev);
+    }
+    const dates = Object.keys(groups).sort();
+    for(const d of dates){
+      const hdr = document.createElement("div");
+      hdr.className = "muted";
+      hdr.style.fontWeight = "900";
+      hdr.style.margin = "14px 0 6px";
+      hdr.textContent = d;
+      box.appendChild(hdr);
+      for(const ev of groups[d]){
+        box.appendChild(eventCard(ev));
+      }
+    }
   } else {
-    end = new Date(start.getTime() + DEFAULT_DURATION_MIN*60000);
-  }
-
-  return {
-    summary,
-    location: loc || undefined,
-    description: notes || undefined,
-    start: { dateTime: start.toISOString() },
-    end: { dateTime: end.toISOString() }
-  };
-}
-
-async function createEvent(){
-  const dateStr = $("datePick").value;
-  const payload = buildEventPayload(dateStr);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
-  await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
-}
-
-async function updateEvent(eventId){
-  const dateStr = $("datePick").value;
-  const payload = buildEventPayload(dateStr);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
-  await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
-}
-
-async function deleteEvent(eventId){
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
-  await apiFetch(url, { method:"DELETE" });
-}
-
-
-async function copyEventToDate(ev, targetDateStr){
-  // Build a new event payload based on existing event, but moved to target date
-  const base = {
-    summary: ev.summary,
-    location: ev.location || undefined,
-    description: ev.description || undefined
-  };
-
-  if(ev.start?.date){ // all-day
-    const startDate = targetDateStr;
-    const endDate = addDays(targetDateStr, 1);
-    const payload = Object.assign({}, base, { start: {date: startDate}, end: {date: endDate} });
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
-    await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
-    return;
-  }
-
-  // timed event: keep time-of-day, change date
-  const s = new Date(ev.start.dateTime);
-  const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
-
-  const [y,m,d] = targetDateStr.split("-").map(Number);
-
-  const start = new Date(y, m-1, d, s.getHours(), s.getMinutes(), 0);
-  let end;
-  if(e){
-    // keep same duration
-    const dur = e.getTime() - s.getTime();
-    end = new Date(start.getTime() + dur);
-  }else{
-    end = new Date(start.getTime() + DEFAULT_DURATION_MIN*60000);
-  }
-
-  const payload = Object.assign({}, base, {
-    start: { dateTime: start.toISOString() },
-    end: { dateTime: end.toISOString() }
-  });
-
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
-  await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
-}
-
-// -------- Modal helpers --------
-function openModal(mode, ev=null){
-  $("modalBackdrop").style.display = "block";
-  if(mode === "new"){
-    editingEventId = null;
-    $("modalTitle").textContent = "New Job / 新增工作";
-    $("delBtn").style.display = "none";
-    $("fStart").value = "";
-    $("fEnd").value = "";
-    $("fTitle").value = DEFAULT_FILTER ? `${DEFAULT_FILTER}` : "";
-    $("fLoc").value = "";
-    $("fNotes").value = "";
-  } else {
-    editingEventId = ev.id;
-    $("modalTitle").textContent = "Edit Job / 编辑工作";
-    $("delBtn").style.display = "inline-block";
-
-    $("fTitle").value = (ev.summary || "");
-    $("fLoc").value = (ev.location || "");
-    $("fNotes").value = (ev.description || "");
-
-    // time
-    if(ev.start?.dateTime){
-      const s = new Date(ev.start.dateTime);
-      const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
-      $("fStart").value = s.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:false});
-      $("fEnd").value = e ? e.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:false}) : "";
-    } else {
-      $("fStart").value = "";
-      $("fEnd").value = "";
+    if(!items.length){
+      box.innerHTML = `<div class="muted">No jobs yet. Tap + to add.</div>`;
+      return;
+    }
+    for(const ev of items){
+      box.appendChild(eventCard(ev));
     }
   }
 }
 
-function closeModal(){
-  $("modalBackdrop").style.display = "none";
+async function fetchEvents(){
+  const dateStr = $("datePick").value;
+  const view = $("viewSel").value;
+
+  let range;
+  if(view === "week") range = rfcRangeForWeek(dateStr);
+  else range = rfcRangeForDay(dateStr);
+
+  const params = new URLSearchParams({
+    timeMin: range.timeMin,
+    timeMax: range.timeMax,
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "250"
+  });
+  if(DEFAULT_FILTER) params.set("q", DEFAULT_FILTER);
+
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?` + params.toString();
+  const data = await apiFetch(url);
+  const items = (data.items || []).filter(ev => ev.status !== "cancelled");
+  return { items, range };
 }
 
-function ensureJobTag(){
-  const v = $("fTitle").value || "";
-  if(v.includes("#JOB")) return;
-  $("fTitle").value = (v ? (v + " ") : "") + "#JOB";
-}
-
-// -------- WhatsApp helpers --------
-async function copyText(txt){
+async function load(){
+  setStatus("Loading…");
   try{
-    await navigator.clipboard.writeText(txt);
-    toast("Copied");
-    return true;
-  }catch{
-    toast("Copy failed");
-    return false;
+    const dateStr = $("datePick").value;
+    const view = $("viewSel").value;
+    const { items, range } = await fetchEvents();
+    renderList(items, view);
+
+    if(view === "week"){
+      const title = `KG DEMOLISH WEEK SCHEDULE: ${range.mon} → ${range.nextMon}`;
+      $("preview").textContent = buildWhatsAppForEvents(title, items);
+    } else {
+      $("preview").textContent = buildWhatsAppForEvents(`KG DEMOLISH DAILY SCHEDULE: ${dateStr}`, items);
+    }
+
+    setStatus(`Loaded ${items.length} job(s).`);
+  }catch(e){
+    setStatus(e.message);
+    $("events").innerHTML = `<div class="muted">${escapeHtml(e.message)}</div>`;
+    $("preview").textContent = "";
+    lastEvents = [];
   }
 }
 
+// ---- CRUD ----
+function currentDate(){ return $("datePick").value; }
+
+function openModal(mode, ev=null){
+  $("modalBackdrop").style.display = "block";
+  $("fCopyDate").value = "";
+  if(mode === "new"){
+    $("modalTitle").textContent = "New Job";
+    $("delBtn").style.display = "none";
+    $("modalBackdrop").setAttribute("data-event-id", "");
+    $("fTime").value = "";
+    $("fAddr").value = "";
+    $("fRemove").value = "";
+    $("fKeep").value = "";
+    $("fProtect").value = "";
+    $("fDisposal").value = "";
+    return;
+  }
+  $("modalTitle").textContent = "Edit Job";
+  $("delBtn").style.display = "inline-block";
+  $("modalBackdrop").setAttribute("data-event-id", ev.id);
+
+  if(ev.start?.dateTime){
+    const s = new Date(ev.start.dateTime);
+    $("fTime").value = s.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:false});
+  }else{
+    $("fTime").value = "";
+  }
+
+  const fields = parseDescription(ev.description || "");
+  $("fAddr").value = fields.addr || "";
+  $("fRemove").value = fields.remove || "";
+  $("fKeep").value = fields.keep || "";
+  $("fProtect").value = fields.protect || "";
+  $("fDisposal").value = fields.disposal || "";
+}
+
+function closeModal(){ $("modalBackdrop").style.display = "none"; }
+
+function buildEventPayloadForDate(dateStr){
+  const time = ($("fTime").value || "").trim();
+  const fields = {
+    addr: ($("fAddr").value || "").trim(),
+    remove: ($("fRemove").value || "").trim(),
+    keep: ($("fKeep").value || "").trim(),
+    protect: ($("fProtect").value || "").trim(),
+    disposal: ($("fDisposal").value || "").trim(),
+  };
+
+  const description = buildDescription(fields);
+  const summary = `${TITLE_PREFIX}${DEFAULT_FILTER}`.trim();
+  const location = fields.addr || undefined;
+
+  if(!time){
+    return { summary, location, description, start:{date:dateStr}, end:{date:addDays(dateStr,1)} };
+  }
+
+  const [y,m,d] = dateStr.split("-").map(Number);
+  const [hh, mm] = time.split(":").map(Number);
+  const start = new Date(y, m-1, d, hh, mm || 0, 0);
+  const end = new Date(start.getTime() + DEFAULT_DURATION_MIN*60000);
+
+  return { summary, location, description, start:{dateTime:start.toISOString()}, end:{dateTime:end.toISOString()} };
+}
+
+async function createEvent(dateStr){
+  const payload = buildEventPayloadForDate(dateStr);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+  await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
+}
+async function updateEvent(eventId, dateStr){
+  const payload = buildEventPayloadForDate(dateStr);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
+  await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
+}
+async function deleteEvent(eventId){
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
+  await apiFetch(url, { method:"DELETE" });
+}
+async function copyEventToDate(ev, targetDateStr){
+  const base = { summary: ev.summary, location: ev.location || undefined, description: ev.description || undefined };
+  if(ev.start?.date){
+    const payload = Object.assign({}, base, { start:{date:targetDateStr}, end:{date:addDays(targetDateStr,1)} });
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+    await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
+    return;
+  }
+  const s = new Date(ev.start.dateTime);
+  const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
+  const [y,m,d] = targetDateStr.split("-").map(Number);
+  const start = new Date(y, m-1, d, s.getHours(), s.getMinutes(), 0);
+  const dur = e ? (e.getTime() - s.getTime()) : (DEFAULT_DURATION_MIN*60000);
+  const end = new Date(start.getTime() + dur);
+  const payload = Object.assign({}, base, { start:{dateTime:start.toISOString()}, end:{dateTime:end.toISOString()} });
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+  await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
+}
+
+// ---- WhatsApp ----
+async function copyText(txt){
+  try{ await navigator.clipboard.writeText(txt); toast("Copied"); return true; }
+  catch{ toast("Copy failed"); return false; }
+}
 function openWhatsApp(txt){
   location.href = "https://wa.me/?text=" + encodeURIComponent(txt);
 }
 
-// -------- Auth --------
+// ---- Auth ----
 function initAuth(){
   if(!window.google || !google.accounts || !google.accounts.oauth2){
     setStatus("Google library not loaded (check internet).");
@@ -732,17 +633,17 @@ function initAuth(){
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
-    callback: (resp) => {
+    callback: async (resp) => {
       if(resp.error){ setStatus(resp.error); return; }
       accessToken = resp.access_token;
-      setStatus("Authorized. Tap Load.");
       toast("Authorized");
+      setStatus("Authorized. Loading…");
+      await load();
     }
   });
   setStatus("Ready. Tap Authorize.");
 }
 
-// Logout just forgets token in app (Google session may still exist in browser)
 function logout(){
   accessToken = null;
   lastEvents = [];
@@ -752,94 +653,72 @@ function logout(){
   toast("Logged out");
 }
 
-// -------- Init UI --------
-$("tpl").textContent = notesTemplate();
-$("fNotes").placeholder = notesTemplate();
-
-$("datePick").value = isoDateLocal(new Date());
-$("filter").value = DEFAULT_FILTER;
-
-window.addEventListener("load", () => {
+// ---- UI ----
+window.addEventListener("load", ()=>{
+  $("datePick").value = isoDateLocal(new Date());
   initAuth();
-  // Service worker
   if("serviceWorker" in navigator){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});
   }
 });
 
-// Buttons
-$("authBtn").onclick = () => {
-  if(!tokenClient) return;
-  tokenClient.requestAccessToken({ prompt: "" });
+$("installTipBtn").onclick = ()=>{
+  alert("Install on iPhone: open this link in Safari → Share → Add to Home Screen.\n\nSync: stored in Google Calendar, so iPhone + desktop match.\n\nIf login fails in Home Screen app, authorize once in Safari first.");
 };
 
-$("logoutBtn").onclick = logout;
+$("todayBtn").onclick = ()=>{ $("datePick").value = isoDateLocal(new Date()); };
+$("prevBtn").onclick = ()=>{ $("datePick").value = addDays($("datePick").value, -1); };
+$("nextBtn").onclick = ()=>{ $("datePick").value = addDays($("datePick").value, +1); };
 
-$("loadBtn").onclick = load;
+$("loadBtn").onclick = ()=>{ if(!accessToken){ toast("Tap Authorize first"); return; } load(); };
 
-$("todayBtn").onclick = () => {
-  $("datePick").value = isoDateLocal(new Date());
-  load();
-};
+$("copyWaBtn").onclick = async ()=>{ if(!accessToken){ toast("Tap Authorize first"); return; } if(!$("preview").textContent) await load(); copyText($("preview").textContent); };
+$("openWaBtn").onclick = async ()=>{ if(!accessToken){ toast("Tap Authorize first"); return; } if(!$("preview").textContent) await load(); openWhatsApp($("preview").textContent); };
 
-$("prevBtn").onclick = () => { $("datePick").value = addDays($("datePick").value, -1); load(); };
-$("nextBtn").onclick = () => { $("datePick").value = addDays($("datePick").value, +1); load(); };
-
-$("viewSel").onchange = load;
-$("lang").onchange = setPreview;
-
-$("newBtn").onclick = () => openModal("new");
+$("newBtn").onclick = ()=>{ if(!accessToken){ toast("Tap Authorize first"); return; } openModal("new"); };
 $("closeModalBtn").onclick = closeModal;
 $("modalBackdrop").addEventListener("click", (e)=>{ if(e.target === $("modalBackdrop")) closeModal(); });
 
-$("insertTplBtn").onclick = ()=>{
-  const cur = ($("fNotes").value || "").trim();
-  $("fNotes").value = cur ? (cur + "\n\n" + notesTemplate()) : notesTemplate();
-  toast("Template inserted");
+$("clearBtn").onclick = ()=>{
+  $("fTime").value=""; $("fAddr").value=""; $("fRemove").value=""; $("fKeep").value=""; $("fProtect").value=""; $("fDisposal").value="";
+  toast("Cleared");
 };
-
-$("addSlotBtn").onclick = ()=>{
-  const cur = ($("fNotes").value || "").trim();
-  // Add another slot block below (multi slot)
-  $("fNotes").value = cur ? (cur + "\n\n" + notesTemplate()) : notesTemplate();
-  toast("Slot added");
-};
-
-$("addJobTagBtn").onclick = ()=>{ ensureJobTag(); toast("#JOB added"); };
 
 $("saveBtn").onclick = async ()=>{
-  setStatus("Saving…");
   try{
-    if(!accessToken) throw new Error("Not authorized. Tap Authorize first.");
-    if(editingEventId){
-      await updateEvent(editingEventId);
-      toast("Updated");
-    } else {
-      await createEvent();
-      toast("Saved");
+    if(!accessToken) throw new Error("Not authorized. Tap Authorize.");
+    setStatus("Saving…");
+    const dateStr = currentDate();
+    const eventId = $("modalBackdrop").getAttribute("data-event-id");
+    if(eventId) { await updateEvent(eventId, dateStr); toast("Updated"); }
+    else { await createEvent(dateStr); toast("Saved"); }
+
+    const target = ($("fCopyDate").value || "").trim();
+    if(target){
+      // copy current form as new event on target
+      const payload = buildEventPayloadForDate(target);
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+      await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
+      toast("Saved + Copied");
     }
     closeModal();
     await load();
-  }catch(e){
-    setStatus(e.message);
-  }
+  }catch(e){ setStatus(e.message); }
 };
 
 $("delBtn").onclick = async ()=>{
-  if(!editingEventId) return;
-  if(!confirm("Delete this job? / 删除这个工作？")) return;
-  setStatus("Deleting…");
   try{
-    await deleteEvent(editingEventId);
+    const eventId = $("modalBackdrop").getAttribute("data-event-id");
+    if(!eventId) return;
+    if(!confirm("Delete this job?")) return;
+    setStatus("Deleting…");
+    await deleteEvent(eventId);
     toast("Deleted");
     closeModal();
     await load();
-  }catch(e){
-    setStatus(e.message);
-  }
+  }catch(e){ setStatus(e.message); }
 };
 
-// Edit click
 $("events").addEventListener("click", (e)=>{
   const editBtn = e.target.closest("button[data-edit]");
   const copyBtn = e.target.closest("button[data-copy]");
@@ -848,12 +727,12 @@ $("events").addEventListener("click", (e)=>{
     const id = copyBtn.getAttribute("data-copy");
     const ev = lastEvents.find(x=> x.id === id);
     if(!ev) return;
-    const target = prompt("Copy to date (YYYY-MM-DD): / 复制到日期 (YYYY-MM-DD):", $("datePick").value);
+    const target = prompt("Copy to date (YYYY-MM-DD):", $("datePick").value);
     if(!target) return;
     setStatus("Copying…");
     copyEventToDate(ev, target.trim())
-      .then(()=>{ toast("Copied"); setStatus("Copied. Tap Load to refresh."); })
-      .catch(err=>{ setStatus(err.message); });
+      .then(()=>{ toast("Copied"); return load(); })
+      .catch(err=> setStatus(err.message));
     return;
   }
 
@@ -864,22 +743,22 @@ $("events").addEventListener("click", (e)=>{
   }
 });
 
-$("copyTplBtn").onclick = ()=> copyText(notesTemplate());
+// Auth buttons (top + bottom)
+const authTopBtn = document.getElementById("authTopBtn");
+const logoutTopBtn = document.getElementById("logoutTopBtn");
+const authBtn = document.getElementById("authBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 
-$("copyMsgBtn").onclick = ()=> copyText($("preview").textContent);
-$("openWaBtn").onclick = ()=> openWhatsApp($("preview").textContent);
+function doAuth(){
+  if(!tokenClient){ toast("Auth not ready"); return; }
+  tokenClient.requestAccessToken({ prompt:"" });
+}
+if(authTopBtn) authTopBtn.onclick = doAuth;
+if(authBtn) authBtn.onclick = doAuth;
+if(logoutTopBtn) logoutTopBtn.onclick = logout;
+if(logoutBtn) logoutBtn.onclick = logout;
 
-$("sendBtn").onclick = async ()=>{
-  // Send today quickly
-  $("datePick").value = isoDateLocal(new Date());
-  await load();
-  const msg = $("preview").textContent;
-  await copyText(msg);
-  openWhatsApp(msg);
-};
-
-// Default: not auto loading until authorized
-setPreview();
 </script>
+
 </body>
 </html>

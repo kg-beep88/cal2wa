@@ -1,34 +1,36 @@
-# Work Plan PWA (Google Calendar ↔ WhatsApp)
+# KG Demolish Calendar — SYNC Version (Google Calendar) FREE
 
 This PWA:
-- looks like a simple Google Calendar agenda on phone (Day/Week)
-- reads events from Google Calendar
-- lets you CREATE / EDIT / DELETE events (saved into Google Calendar)
-- provides a ready Notes template (EN+中文)
-- generates ONE combined WhatsApp message for the selected date (copy/open)
+- Syncs using Google Calendar (same on iPhone + desktop)
+- Day / Week agenda view
+- Add / Edit / Delete / Copy to any day
+- WhatsApp daily/weekly schedule (Copy + Open WhatsApp)
+- Uses your template exactly in the event Description
 
-## WhatsApp note (important)
-A website cannot directly auto-send into a specific WhatsApp group.
-The reliable flow is: Copy → WhatsApp → paste into your pinned group → Send.
+## 1) Google Calendar (recommended)
+Create a new calendar called: "KG Demolish"
+Then copy its Calendar ID and paste into config.js (CALENDAR_ID).
 
-## Google Cloud setup (free)
-1) Create Google Cloud project
-2) Enable Google Calendar API
-3) OAuth Consent Screen:
-   - External
-   - Testing
+Tip: This app filters events by keyword #KG so your personal events won't show.
+
+## 2) Google Cloud setup (free)
+1. Create Google Cloud Project
+2. Enable "Google Calendar API"
+3. OAuth consent screen:
+   - External → Testing
    - Add your Gmail under Test Users
-4) Create OAuth Client ID (Web application)
+4. Create OAuth Client ID (Web application)
    - Authorized JavaScript origin: https://YOURNAME.github.io
-5) In config.js paste your CLIENT_ID
+5. Paste the Client ID into config.js
 
-Scope used:
-- https://www.googleapis.com/auth/calendar.events  (read + write events)
+Scope:
+- https://www.googleapis.com/auth/calendar.events
 
-## GitHub Pages
+## 3) Host on GitHub Pages (free)
 Repo Settings → Pages → Deploy from branch → main / root
-Open the Pages link in Safari and Add to Home Screen.
 
-## Recommended workflow
-- Put #JOB in work items (title or notes)
-- Keep Location = address, Notes = details (workers/vehicle, wall to remove, PTW)
+Open the link on iPhone Safari → Share → Add to Home Screen.
+
+## WhatsApp note
+Web apps cannot directly post into a specific group automatically.
+Use: Copy → WhatsApp → paste into pinned group → Send.
