@@ -176,7 +176,7 @@
     }
     .gcalControls{
       display:grid;
-      grid-template-columns: 1.1fr .7fr 1fr 1fr;
+      grid-template-columns: 1.1fr .7fr 1fr 1fr 1.2fr;
       gap:10px;
       margin-top:10px;
     }
@@ -462,6 +462,12 @@
           <button class="secondary" id="authTopBtn">Authorize</button>
           <button class="secondary" id="logoutTopBtn">Logout</button>
         </div>
+        <div class="muted" id="whoami" style="margin-top:6px;">Not signed in</div>
+      </div>
+      <div class="ctrl">
+        <label>Calendar</label>
+        <select id="calSel"></select>
+        <div class="muted" style="margin-top:6px;">Pick a writable calendar. If "Primary" fails, choose your KG Demolish calendar here.</div>
       </div>
       <div class="ctrl">
         <label>WhatsApp</label>
@@ -574,12 +580,13 @@
 
 const CFG = window.APP_CONFIG || {};
 const CLIENT_ID = CFG.CLIENT_ID || "PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com";
-const CALENDAR_ID = CFG.CALENDAR_ID || "primary";
+const DEFAULT_CALENDAR_ID = CFG.CALENDAR_ID || "primary";
+let ACTIVE_CALENDAR_ID = localStorage.getItem("kg_active_calendar") || DEFAULT_CALENDAR_ID;
 const DEFAULT_FILTER = (CFG.DEFAULT_FILTER ?? "#KG").trim();
 const DEFAULT_DURATION_MIN = Number(CFG.DEFAULT_DURATION_MIN || 120);
 const TITLE_PREFIX = (CFG.TITLE_PREFIX ?? "KG ").trim();
 
-const SCOPES = "https://www.googleapis.com/auth/calendar.events";
+const SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly openid email";
 
 let tokenClient = null;
 let accessToken = null;
@@ -634,6 +641,69 @@ function rfcRangeForWeek(dateStr){
   const nextMon = addDays(mon, 7);
   const {timeMax} = rfcRangeForDay(nextMon);
   return { timeMin, timeMax, mon, nextMon };
+}
+
+
+async function fetchWhoAmI(){
+  try{
+    const res = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+      headers: { "Authorization": `Bearer ${accessToken}` }
+    });
+    if(!res.ok) return null;
+    return res.json();
+  }catch{ return null; }
+}
+
+async function fetchWritableCalendars(){
+  // Returns list of calendars user can write to.
+  const url = "https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=writer&maxResults=250";
+  const data = await apiFetch(url);
+  const items = (data.items || []).map(c => ({
+    id: c.id,
+    summary: c.summary || c.id,
+    primary: !!c.primary
+  }));
+  // Put primary first
+  items.sort((a,b)=> (b.primary?1:0) - (a.primary?1:0) || a.summary.localeCompare(b.summary));
+  return items;
+}
+
+function setActiveCalendar(id){
+  ACTIVE_CALENDAR_ID = id || DEFAULT_CALENDAR_ID;
+  localStorage.setItem("kg_active_calendar", ACTIVE_CALENDAR_ID);
+}
+
+function showCalendars(items){
+  const sel = document.getElementById("calSel");
+  if(!sel) return;
+  sel.innerHTML = "";
+  for(const c of items){
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.textContent = c.primary ? `Primary — ${c.summary}` : c.summary;
+    sel.appendChild(opt);
+  }
+  sel.value = ACTIVE_CALENDAR_ID;
+}
+
+async function initCalendarsUI(){
+  const sel = document.getElementById("calSel");
+  if(!sel) return;
+
+  try{
+    const items = await fetchWritableCalendars();
+    showCalendars(items);
+
+    sel.onchange = async ()=>{
+      setActiveCalendar(sel.value);
+      toast("Calendar selected");
+      await load();
+    };
+  }catch(e){
+    // If calendarList fails, still allow manual primary
+    sel.innerHTML = `<option value="${DEFAULT_CALENDAR_ID}">Primary</option>`;
+    sel.value = DEFAULT_CALENDAR_ID;
+  }
 }
 
 async function apiFetch(url, opts={}){
@@ -778,7 +848,7 @@ async function fetchEvents(){
   });
   if(DEFAULT_FILTER) params.set("q", DEFAULT_FILTER);
 
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?` + params.toString();
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events?` + params.toString();
   const data = await apiFetch(url);
   const items = (data.items || []).filter(ev => ev.status !== "cancelled");
   return { items, range };
@@ -804,7 +874,7 @@ async function fetchEventsMonth(dateStr){
     maxResults: "2500"
   });
   if(DEFAULT_FILTER) params.set("q", DEFAULT_FILTER);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?` + params.toString();
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events?` + params.toString();
   const data = await apiFetch(url);
   const items = (data.items || []).filter(ev => ev.status !== "cancelled");
   return { items, range: mr };
@@ -840,7 +910,7 @@ async function moveEventToDate(ev, targetDateStr){
       start: { date: targetDateStr },
       end: { date: addDays(targetDateStr, 1) }
     };
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
     await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
     return;
   }
@@ -859,7 +929,7 @@ async function moveEventToDate(ev, targetDateStr){
     start: { dateTime: start.toISOString() },
     end: { dateTime: end.toISOString() }
   };
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
   await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
 }
 
@@ -1034,6 +1104,11 @@ async function load(){
     $("events").innerHTML = `<div class="muted">${escapeHtml(e.message)}</div>`;
     $("preview").textContent = "";
     lastEvents = [];
+    // If calendar not found (404), reload calendar list so user can pick the right calendar
+    if(String(e.message || "").includes("API 404")){
+      try{ await initCalendarsUI(); }catch{}
+      toast("Calendar not found. Select a calendar.");
+    }
   }
 }
 
@@ -1109,23 +1184,23 @@ function buildEventPayloadForDate(dateStr){
 
 async function createEvent(dateStr){
   const payload = buildEventPayloadForDate(dateStr);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
   await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
 }
 async function updateEvent(eventId, dateStr){
   const payload = buildEventPayloadForDate(dateStr);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
   await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
 }
 async function deleteEvent(eventId){
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
   await apiFetch(url, { method:"DELETE" });
 }
 async function copyEventToDate(ev, targetDateStr){
   const base = { summary: ev.summary, location: ev.location || undefined, description: ev.description || undefined };
   if(ev.start?.date){
     const payload = Object.assign({}, base, { start:{date:targetDateStr}, end:{date:addDays(targetDateStr,1)} });
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
     await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
     return;
   }
@@ -1136,7 +1211,7 @@ async function copyEventToDate(ev, targetDateStr){
   const dur = e ? (e.getTime() - s.getTime()) : (DEFAULT_DURATION_MIN*60000);
   const end = new Date(start.getTime() + dur);
   const payload = Object.assign({}, base, { start:{dateTime:start.toISOString()}, end:{dateTime:end.toISOString()} });
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
   await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
 }
 
@@ -1161,7 +1236,7 @@ async function fetchEventsForDayOnly(dateStr){
     maxResults: "250"
   });
   if(DEFAULT_FILTER) params.set("q", DEFAULT_FILTER);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?` + params.toString();
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events?` + params.toString();
   const data = await apiFetch(url);
   return (data.items || []).filter(ev => ev.status !== "cancelled");
 }
@@ -1183,6 +1258,10 @@ function initAuth(){
       if(resp.error){ setStatus(resp.error); return; }
       accessToken = resp.access_token;
       toast("Authorized");
+      const me = await fetchWhoAmI();
+      const who = document.getElementById("whoami");
+      if(who) who.textContent = me?.email ? (`Signed in: ${me.email}`) : "Signed in";
+      await initCalendarsUI();
       setStatus("Authorized. Loading…");
       await load();
     }
@@ -1195,12 +1274,17 @@ function logout(){
   lastEvents = [];
   $("events").innerHTML = "";
   $("preview").textContent = "";
+  const who = document.getElementById("whoami");
+  if(who) who.textContent = "Not signed in";
   setStatus("Logged out.");
   toast("Logged out");
 }
 
 // ---- UI ----
 window.addEventListener("load", ()=>{
+  const sel = document.getElementById("calSel");
+  if(sel){ sel.innerHTML = `<option value="${ACTIVE_CALENDAR_ID}">Calendar: ${ACTIVE_CALENDAR_ID}</option>`; }
+
   $("datePick").value = isoDateLocal(new Date());
   initAuth();
   if("serviceWorker" in navigator){
@@ -1266,7 +1350,7 @@ $("datePick").value = dateStr;
     if(target){
       // copy current form as new event on target
       const payload = buildEventPayloadForDate(target);
-      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`;
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
       await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
       toast("Saved + Copied");
     }
