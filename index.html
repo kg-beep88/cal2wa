@@ -543,7 +543,7 @@
       <div class="ctrl">
         <label>Account</label>
         <div class="row">
-          <button class="secondary" id="authTopBtn">Authorize</button>
+          <button class="secondary" id="authTopBtn" onclick="if(window.authorizeNow){window.authorizeNow()}else{alert(\'App script not loaded. Hard refresh (Ctrl+F5) or clear site data.\')}">Authorize</button>
           <button class="secondary" id="logoutTopBtn">Logout</button>
         </div>
         <div class="muted" id="whoami" style="margin-top:6px;">Not signed in</div>
@@ -664,6 +664,80 @@
 
 const CFG = window.APP_CONFIG || {};
 const CLIENT_ID = CFG.CLIENT_ID || "PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com";
+
+// --- v15: robust Google login bootstrap + hard debug ---
+function dbg(t){
+  const b = document.getElementById("debugBox");
+  if(b){ b.style.display="block"; b.textContent = t; }
+  try{ console.log("[KG]", t); }catch{}
+}
+
+function loadGsiClient(){
+  return new Promise((resolve, reject)=>{
+    if(window.google && google.accounts && google.accounts.oauth2) return resolve(true);
+    const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if(existing){
+      existing.addEventListener("load", ()=>resolve(true), { once:true });
+      existing.addEventListener("error", ()=>reject(new Error("Failed to load Google login script")), { once:true });
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = "https://accounts.google.com/gsi/client";
+    s.async = true; s.defer = true;
+    s.onload = ()=>resolve(true);
+    s.onerror = ()=>reject(new Error("Failed to load Google login script (blocked by extension/network)"));
+    document.head.appendChild(s);
+  });
+}
+
+let tokenClient = null;
+
+async function ensureTokenClient(){
+  await loadGsiClient();
+  if(!(window.google && google.accounts && google.accounts.oauth2)){
+    throw new Error("Google login library not ready");
+  }
+  if(!CLIENT_ID){
+    throw new Error("CLIENT_ID missing in config.js");
+  }
+  if(!tokenClient){
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (resp)=>{
+        try{
+          if(resp.error) throw new Error(resp.error);
+          accessToken = resp.access_token;
+          dbg("Authorized ✓");
+          toast("Authorized");
+          const me = await fetchWhoAmI();
+          const who = document.getElementById("whoami");
+          if(who) who.textContent = me?.email ? (`Signed in: ${me.email}`) : "Signed in";
+          await initCalendarsUI();
+          setStatus("Authorized. Loading…");
+          await load();
+        }catch(e){
+          dbg("Authorize callback error: " + (e?.message||e));
+          setStatus(e?.message || String(e));
+          alert("Authorize error: " + (e?.message||e));
+        }
+      }
+    });
+  }
+  return tokenClient;
+}
+
+// Global function called by inline onclick
+window.authorizeNow = async function(){
+  try{
+    dbg("Authorize clicked…");
+    const tc = await ensureTokenClient();
+    tc.requestAccessToken({ prompt: "consent" });
+  }catch(e){
+    dbg(e?.message || String(e));
+    alert(e?.message || String(e));
+  }
+};
 const DEFAULT_CALENDAR_ID = CFG.CALENDAR_ID || "primary";
 let ACTIVE_CALENDAR_ID = localStorage.getItem("kg_active_calendar") || DEFAULT_CALENDAR_ID;
 const DEFAULT_FILTER = (CFG.DEFAULT_FILTER ?? "#KG").trim();
@@ -1394,7 +1468,22 @@ function logout(){
 }
 
 // ---- UI ----
+
+function wireAuthButtons(){
+  const a = document.getElementById("authTopBtn") || document.getElementById("authBtn");
+  const b = document.getElementById("logoutTopBtn") || document.getElementById("logoutBtn");
+  if(a && !a.__wired){
+    a.__wired = true;
+    a.addEventListener("click", ()=>{ try{ (typeof authBtn!=="undefined" && authBtn.onclick) ? authBtn.onclick() : null; }catch{} });
+  }
+  if(b && !b.__wired){
+    b.__wired = true;
+    b.addEventListener("click", ()=>{ try{ (typeof logoutBtn!=="undefined" && logoutBtn.onclick) ? logoutBtn.onclick() : null; }catch{} });
+  }
+}
+
 window.addEventListener("load", ()=>{
+  wireAuthButtons();
   const sel = document.getElementById("calSel");
   if(sel){ sel.innerHTML = `<option value="${ACTIVE_CALENDAR_ID}">Calendar: ${ACTIVE_CALENDAR_ID}</option>`; }
 
