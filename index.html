@@ -160,6 +160,127 @@
       outline-offset:2px;
     }
 
+
+    /* ---- Google Calendar-like month grid ---- */
+    .gcalToolbar{
+      display:flex; gap:10px; flex-wrap:wrap;
+      justify-content:space-between; align-items:center;
+      margin-top:10px;
+    }
+    .gcalLeft{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .gcalRight{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .gcalTitle{
+      font-size:20px; font-weight:900; letter-spacing:.2px;
+      padding:6px 10px; border-radius:999px; background:#fff;
+      border:1px solid var(--line);
+    }
+    .gcalControls{
+      display:grid;
+      grid-template-columns: 1.1fr .7fr 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width: 900px){
+      .gcalControls{grid-template-columns: 1fr 1fr; }
+    }
+    .ctrl label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    .ctrl .row{margin-top:0}
+    .dowHeader{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap:10px;
+      font-size:12px;
+      font-weight:900;
+      color:var(--muted);
+      padding:0 2px;
+      max-width:980px;
+      margin:0 auto;
+    }
+    .dowHeader > div{
+      padding:8px 10px;
+      border-radius:12px;
+      background:rgba(255,255,255,.75);
+      border:1px solid var(--line);
+      text-align:left;
+    }
+    .monthGrid{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap:10px;
+      margin-top:10px;
+    }
+    .dayCell{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#fff;
+      padding:10px;
+      min-height:140px;
+      box-shadow: 0 1px 0 rgba(2,6,23,.03);
+      transition: box-shadow .12s ease, transform .12s ease;
+    }
+    .dayCell:hover{
+      box-shadow: 0 10px 22px rgba(2,6,23,.08);
+      transform: translateY(-1px);
+    }
+    .dayTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .dayNum{
+      width:28px;height:28px;border-radius:999px;
+      display:grid;place-items:center;
+      font-weight:900;color:var(--txt);
+    }
+    .dayNum.today{
+      background:var(--blue);
+      color:#fff;
+    }
+    .dayNum.outMonth{
+      color:var(--muted);
+    }
+    .pillEvent{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      border-radius:10px;
+      padding:6px 8px;
+      font-size:12px;
+      border:1px solid var(--line);
+      margin-top:6px;
+      cursor:grab;
+      user-select:none;
+      background:#f8fafc;
+    }
+    .pillEvent:active{cursor:grabbing}
+    .pillDot{
+      width:8px;height:8px;border-radius:999px;background:var(--blue);
+      flex:0 0 auto;
+    }
+    .pillText{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      flex:1;
+    }
+    .pillTime{
+      font-weight:900;color:var(--muted);
+      flex:0 0 auto;
+    }
+    .moreLink{
+      margin-top:6px;
+      font-size:12px;
+      font-weight:900;
+      color:var(--blue2);
+      cursor:pointer;
+      user-select:none;
+    }
+    .dropHint{
+      outline:2px dashed rgba(37,99,235,.40);
+      outline-offset:3px;
+    }
+
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="./config.js"></script>
@@ -181,9 +302,9 @@
         <span class="pill">
           <span class="muted" style="font-weight:900">View</span>
           <select id="viewSel" style="width:auto;padding:10px 12px;font-size:15px;border-radius:999px">
-            <option value="day" selected>Day</option>
+            <option value="day">Day</option>
             <option value="week">Week</option>
-            <option value="month">Month</option>
+            <option value="month" selected>Month</option>
           </select>
         </span>
         <button class="secondary small" id="installTipBtn">Install</button>
@@ -197,29 +318,52 @@
         <div class="sectionTitle">Schedule</div>
         <div class="muted">Use <span class="kbd">+</span> to add jobs. Tap a job to Edit / Copy / Delete. Month view: drag to move/copy, double-tap day to add.</div>
       </div>
-      <div class="row">
-        <button class="secondary small" id="todayBtn">Today</button>
-        <button class="secondary small" id="prevBtn">◀</button>
-        <button class="secondary small" id="nextBtn">▶</button>
-        <button class="plus" id="newBtn" title="Add">+</button>
+      
+      <div class="gcalToolbar">
+        <div class="gcalLeft">
+          <button class="secondary small" id="todayBtn">Today</button>
+          <button class="secondary small" id="prevBtn" aria-label="Previous">◀</button>
+          <button class="secondary small" id="nextBtn" aria-label="Next">▶</button>
+          <div class="gcalTitle" id="monthLabel">Month</div>
+        </div>
+        <div class="gcalRight">
+          <button class="secondary small" id="loadBtn">Load</button>
+          <button class="plus" id="newBtn" title="Add">+</button>
+        </div>
       </div>
+
     </div>
 
-    <div class="grid2" style="margin-top:10px">
-      <div>
+    
+    <div class="gcalControls">
+      <div class="ctrl">
         <label>Date</label>
         <input id="datePick" type="date" />
       </div>
-      <div>
-        <label>Send daily schedule</label>
+      <div class="ctrl">
+        <label>View</label>
+        <select id="viewSel">
+          <option value="month" selected>Month</option>
+          <option value="week">Week</option>
+          <option value="day">Day</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <label>Account</label>
         <div class="row">
-          <button class="secondary" id="loadBtn">Load</button>
-          <button class="secondary" id="copyWaBtn">Copy WhatsApp</button>
-          <button id="openWaBtn">Open WhatsApp</button>
+          <button class="secondary" id="authTopBtn">Authorize</button>
+          <button class="secondary" id="logoutTopBtn">Logout</button>
         </div>
-        <div class="muted">WhatsApp group: Copy → Paste → Send.</div>
+      </div>
+      <div class="ctrl">
+        <label>WhatsApp</label>
+        <div class="row">
+          <button class="secondary" id="copyWaBtn">Copy</button>
+          <button id="openWaBtn">Open</button>
+        </div>
       </div>
     </div>
+
 
     <div class="divider"></div>
     <div id="status" class="muted">Ready.</div>
@@ -237,7 +381,8 @@
       </div>
     </div>
 
-    <div id="monthGrid" style="display:none;"></div>
+    <div id="dowHeader" class="dowHeader" style="display:none;"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>
+      <div id="monthGrid" style="display:none;"></div>
 
     <div id="events"></div>
 
@@ -306,14 +451,7 @@
     </div>
   </div>
 
-  <div class="fixedBottom">
-    <div class="fixedInner">
-      <div class="muted">Install on iPhone: Safari → Share → <b>Add to Home Screen</b>.</div>
-      <div class="row">
-        <button class="secondary" id="authBtn">Authorize</button>
-        <button class="secondary" id="logoutBtn">Logout</button>
-      </div>
-    </div>
+  <div class="fixedBottom"><div class="fixedInner"><div class="muted">Month view: drag events to another day to Move/Copy. Double-tap a day to add.</div></div></div>
   </div>
 
   <script>
@@ -562,9 +700,8 @@ async function fetchEventsMonth(dateStr){
 function chipLabel(ev){
   const desc = (ev.description || "").trim();
   const addr = parseDescription(desc).addr || ev.location || "";
-  const t = ev.start?.dateTime ? fmtTime(ev) : "ALL DAY";
-  // show short one-line chip
-  return `${t} • ${addr}`.trim();
+  // short label (like Google Calendar)
+  return addr || "(No address)";
 }
 
 function groupByDate(items){
@@ -617,6 +754,8 @@ async function moveEventToDate(ev, targetDateStr){
 function renderMonth(items, range){
   $("events").style.display = "none";
   const mg = $("monthGrid");
+  const dow = $("dowHeader");
+  dow.style.display = "grid";
   mg.style.display = "block";
   mg.className = "monthGrid";
   mg.innerHTML = "";
@@ -624,12 +763,18 @@ function renderMonth(items, range){
   lastEvents = items;
   const grouped = groupByDate(items);
 
-  // month grid starts on Monday
+  // Month label
+  const monthName = range.first.toLocaleString(undefined, { month: "long", year: "numeric" });
+  $("monthLabel").textContent = monthName;
+
+  // Month grid starts on Monday
   const first = range.first;
   const firstDow = first.getDay(); // 0 Sun .. 6 Sat
   const offset = (firstDow === 0) ? 6 : (firstDow - 1); // days back to Monday
   const gridStart = new Date(first);
   gridStart.setDate(first.getDate() - offset);
+
+  const today = isoDateLocal(new Date());
 
   // 6 rows x 7 days
   for(let i=0;i<42;i++){
@@ -642,31 +787,72 @@ function renderMonth(items, range){
     cell.setAttribute("data-day", dateStr);
 
     const inMonth = (d.getMonth() === first.getMonth());
-    cell.style.opacity = inMonth ? "1" : ".55";
 
     const top = document.createElement("div");
     top.className = "dayTop";
-    top.innerHTML = `<span class="dayNum">${dateStr.slice(8,10)}</span><span class="muted">${dateStr}</span>`;
+    const num = document.createElement("div");
+    num.className = "dayNum" + (dateStr===today ? " today" : "") + (!inMonth ? " outMonth" : "");
+    num.textContent = String(d.getDate());
+    top.appendChild(num);
+
+    const label = document.createElement("div");
+    label.className = "muted";
+    label.style.fontWeight = "900";
+    label.textContent = dateStr;
+    top.appendChild(label);
+
     cell.appendChild(top);
 
     const dayEvents = grouped[dateStr] || [];
-    for(const ev of dayEvents){
-      const chip = document.createElement("div");
-      chip.className = "chip";
-      chip.draggable = true;
-      chip.setAttribute("data-id", ev.id);
-      chip.textContent = chipLabel(ev);
-      chip.addEventListener("dragstart", (e)=>{
+    const MAX_SHOW = 3;
+
+    function addPill(ev){
+      const pill = document.createElement("div");
+      pill.className = "pillEvent";
+      pill.draggable = true;
+      pill.setAttribute("data-id", ev.id);
+
+      const dot = document.createElement("div");
+      dot.className = "pillDot";
+      pill.appendChild(dot);
+
+      const time = document.createElement("div");
+      time.className = "pillTime";
+      time.textContent = ev.start?.dateTime ? fmtTime(ev) : "ALL";
+      pill.appendChild(time);
+
+      const text = document.createElement("div");
+      text.className = "pillText";
+      text.textContent = chipLabel(ev);
+      pill.appendChild(text);
+
+      pill.addEventListener("dragstart", (e)=>{
         e.dataTransfer.setData("text/plain", ev.id);
         e.dataTransfer.effectAllowed = "move";
       });
-      chip.addEventListener("click", ()=>{
+      pill.addEventListener("click", ()=>{
         openModal("edit", ev);
       });
-      cell.appendChild(chip);
+
+      cell.appendChild(pill);
     }
 
-    // Drop handlers
+    const shown = dayEvents.slice(0, MAX_SHOW);
+    shown.forEach(addPill);
+
+    if(dayEvents.length > MAX_SHOW){
+      const more = document.createElement("div");
+      more.className = "moreLink";
+      more.textContent = `+${dayEvents.length - MAX_SHOW} more`;
+      more.addEventListener("click", ()=>{
+        // expand inline
+        more.remove();
+        dayEvents.slice(MAX_SHOW).forEach(addPill);
+      });
+      cell.appendChild(more);
+    }
+
+    // Drag/drop target
     cell.addEventListener("dragover", (e)=>{ e.preventDefault(); cell.classList.add("dropHint"); });
     cell.addEventListener("dragleave", ()=> cell.classList.remove("dropHint"));
     cell.addEventListener("drop", async (e)=>{
@@ -693,7 +879,12 @@ function renderMonth(items, range){
       }
     });
 
-    // Click empty cell to add new on that day
+    // Single click empty day: set date picker
+    cell.addEventListener("click", ()=>{
+      $("datePick").value = dateStr;
+    });
+
+    // Double click day: add new job
     cell.addEventListener("dblclick", ()=>{
       $("datePick").value = dateStr;
       openModal("new");
@@ -718,7 +909,9 @@ async function load(){
     }
 
     const { items, range } = await fetchEvents();
+    $("monthLabel").textContent = dateStr;
     $("monthGrid").style.display = "none";
+    $("dowHeader").style.display = "none";
     $("events").style.display = "block";
     renderList(items, view);
 
