@@ -1,942 +1,444 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>KG Demolish Calendar</title>
-  <meta name="theme-color" content="#2563eb" />
-  <link rel="manifest" href="./manifest.webmanifest" />
-
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <meta name="theme-color" content="#111827"/>
+  <script src="config.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     :root{
-      --bg:#f8fafc;
-      --card:#ffffff;
-      --line:#e5e7eb;
+      --bg:#ffffff;
+      --txt:#0f172a;
       --muted:#6b7280;
-      --txt:#111827;
-      --blue:#2563eb;
-      --blue2:#1d4ed8;
-      --shadow: 0 8px 20px rgba(2,6,23,.08);
-      --radius: 16px;
+      --line:#e6e9ef;
+      --blue:#1a73e8;
+      --blueBg:#e8f0fe;
+      --blueLine:#d7e3ff;
+      --shadow: 0 8px 22px rgba(2,6,23,.08);
+      --radius:16px;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt)}
-    .topbar{
-      position:sticky; top:0; z-index:10;
-      background:rgba(248,250,252,.92); backdrop-filter: blur(10px);
-      border-bottom:1px solid var(--line);
-      padding:12px 14px;
-    }
-    .topbarInner{max-width:980px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-    .brand{display:flex;gap:10px;align-items:center}
-    .logo{width:34px;height:34px;border-radius:10px;background:var(--blue);display:grid;place-items:center;color:#fff;font-weight:900}
-    .title{font-size:18px;font-weight:900;line-height:1}
-    .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .card{
-      background:var(--card); border:1px solid var(--line);
-      border-radius:var(--radius); padding:14px; margin:12px auto; box-shadow:var(--shadow);
-      max-width:980px;
-    }
-    .muted{color:var(--muted);font-size:12px;line-height:1.35}
-    .sectionTitle{font-weight:900;font-size:14px;margin:0 0 8px}
-    input,select,textarea{
-      width:100%;
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:12px;
-      font-size:16px;
-      background:#fff;
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
       color:var(--txt);
-      outline:none;
+      background:var(--bg);
+      overflow-x:hidden;
     }
-    textarea{min-height:140px; resize: vertical;}
-    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
-    button{
-      border:0;border-radius:14px;
-      padding:12px 14px;
-      font-size:16px;font-weight:900;
-      background:var(--blue); color:#fff;
-      box-shadow: 0 6px 16px rgba(37,99,235,.25);
-    }
-    button:active{transform:translateY(1px)}
-    button.secondary{background:#fff;color:var(--txt);border:1px solid var(--line);box-shadow:none}
-    button.danger{background:#ef4444;box-shadow: 0 6px 16px rgba(239,68,68,.25)}
-    button.small{padding:10px 12px;font-size:15px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (max-width: 760px){ .grid2{grid-template-columns:1fr} }
-    .divider{border-top:1px dashed var(--line);margin:10px 0}
-    .event{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
+    .topbar{
+      position:sticky;top:0;z-index:50;
       background:#fff;
-      display:flex;gap:12px;justify-content:space-between;align-items:flex-start;
-      margin-top:10px;
+      border-bottom:1px solid var(--line);
     }
-    .eventTime{min-width:78px;font-weight:900;color:var(--blue2)}
-    .eventMain{flex:1}
-    .eventTitle{font-weight:900}
-    .eventMeta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35;white-space:pre-wrap}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    pre{
-      white-space:pre-wrap;
-      background:#f1f5f9;
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
-      margin:10px 0 0;
-      font-size:14px;
-    }
-    .modalBackdrop{
-      position:fixed; inset:0; background:rgba(2,6,23,.44);
-      display:none; z-index:50;
-      padding:14px;
-      overflow:auto;
-    }
-    .modal{
-      max-width:860px; margin:30px auto; background:#fff;
-      border-radius:20px; border:1px solid var(--line); box-shadow: var(--shadow);
-      padding:14px;
-    }
-    .modalHead{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
-    .modalHead h2{margin:0;font-size:16px;font-weight:900}
-    .toast{
-      position:fixed; top:14px; left:50%; transform:translateX(-50%);
-      background:#111827; color:#fff;
-      border-radius:999px; padding:10px 12px;
-      font-size:13px; display:none; z-index:99;
-    }
-    .fixedBottom{
-      position:fixed; left:0; right:0; bottom:0;
-      background:rgba(248,250,252,.94); backdrop-filter: blur(10px);
-      border-top:1px solid var(--line);
+    .topInner{
+      max-width:1200px;margin:0 auto;
       padding:12px 14px;
-      z-index:20;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
     }
-    .fixedInner{max-width:980px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center}
-    .plus{
-      width:44px;height:44px;border-radius:16px;
-      display:grid;place-items:center;
-      font-size:24px; line-height:1; font-weight:900;
-      padding:0;
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{
+      width:36px;height:36px;border-radius:12px;
+      background:linear-gradient(135deg,#111827,#1f2937);
+      display:grid;place-items:center;color:#fff;font-weight:900;
     }
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:#fff}
-    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; background:#fff; border:1px solid var(--line); padding:2px 6px; border-radius:8px;}
-  
-    .monthGrid{
-      display:grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap:10px;
-    }
-    .dayCell{
+    .brandTitle{display:flex;flex-direction:column;gap:2px}
+    .brandTitle .t{font-weight:900}
+    .brandTitle .s{font-size:12px;color:var(--muted)}
+    .wrap{max-width:1200px;margin:0 auto;padding:14px}
+    .card{
       border:1px solid var(--line);
-      border-radius:16px;
+      border-radius:18px;
+      padding:14px;
       background:#fff;
-      padding:10px;
-      min-height:120px;
     }
-    .dayTop{
-      display:flex;justify-content:space-between;align-items:center;
+    .toolbar{
+      display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+    }
+    .left, .right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .titlePill{
+      padding:7px 12px;border-radius:999px;border:1px solid var(--line);
       font-weight:900;
-      margin-bottom:8px;
+      background:#fff;
     }
-    .dayNum{color:var(--blue2)}
-    .chip{
-      display:block;
+    button, select, input, textarea{ font:inherit; }
+    button{
       border:1px solid var(--line);
+      background:#111827;
+      color:#fff;
       border-radius:12px;
-      padding:8px 10px;
-      font-size:12px;
-      background:#f8fafc;
-      margin-top:6px;
-      cursor:grab;
-      user-select:none;
-      white-space:pre-wrap;
+      padding:10px 12px;
+      font-weight:900;
+      cursor:pointer;
     }
-    .chip:active{cursor:grabbing}
-    .dropHint{
-      outline:2px dashed rgba(37,99,235,.35);
-      outline-offset:2px;
+    button.secondary{ background:#fff;color:var(--txt); }
+    button.small{ padding:8px 10px;border-radius:12px }
+    button.plus{
+      width:44px;height:44px;border-radius:14px;
+      font-size:22px;line-height:1;
+      display:grid;place-items:center;
+      background:var(--blue);
+      border-color:transparent;
     }
-
-
-    /* ---- Google Calendar-like month grid ---- */
-    .gcalToolbar{
-      display:flex; gap:10px; flex-wrap:wrap;
-      justify-content:space-between; align-items:center;
-      margin-top:10px;
-    }
-    .gcalLeft{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    .gcalRight{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    .gcalTitle{
-      font-size:20px; font-weight:900; letter-spacing:.2px;
-      padding:6px 10px; border-radius:999px; background:#fff;
-      border:1px solid var(--line);
-    }
-    .gcalControls{
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .controls{
       display:grid;
       grid-template-columns: 1.1fr .7fr 1fr 1fr 1.2fr;
       gap:10px;
-      margin-top:10px;
+      margin-top:12px;
     }
-    @media (max-width: 900px){
-      .gcalControls{grid-template-columns: 1fr 1fr; }
-    }
-    .ctrl label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
-    .ctrl .row{margin-top:0}
-    .dowHeader{
-      display:grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap:10px;
-      font-size:12px;
-      font-weight:900;
-      color:var(--muted);
-      padding:0 2px;
-      max-width:980px;
-      margin:0 auto;
-    }
-    .dowHeader > div{
-      padding:8px 10px;
+    .ctrl label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px;font-weight:800}
+    input[type="date"], select{
+      width:100%;
+      padding:10px 12px;
       border-radius:12px;
-      background:rgba(255,255,255,.75);
       border:1px solid var(--line);
-      text-align:left;
-    }
-    .monthGrid{
-      display:grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap:10px;
-      margin-top:10px;
-    }
-    .dayCell{
-      border:1px solid var(--line);
-      border-radius:16px;
       background:#fff;
-      padding:10px;
-      min-height:140px;
-      box-shadow: 0 1px 0 rgba(2,6,23,.03);
-      transition: box-shadow .12s ease, transform .12s ease;
     }
-    .dayCell:hover{
-      box-shadow: 0 10px 22px rgba(2,6,23,.08);
-      transform: translateY(-1px);
-    }
-    .dayTop{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:8px;
-    }
-    .dayNum{
-      width:28px;height:28px;border-radius:999px;
-      display:grid;place-items:center;
-      font-weight:900;color:var(--txt);
-    }
-    .dayNum.today{
-      background:var(--blue);
-      color:#fff;
-    }
-    .dayNum.outMonth{
-      color:var(--muted);
-    }
-    .pillEvent{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      border-radius:10px;
-      padding:6px 8px;
-      font-size:12px;
+    .whoami{font-size:12px;color:var(--muted);margin-top:6px}
+    .status{
+      margin-top:12px;
+      padding:10px 12px;border-radius:12px;
       border:1px solid var(--line);
-      margin-top:6px;
-      cursor:grab;
-      user-select:none;
-      background:#f8fafc;
-    }
-    .pillEvent:active{cursor:grabbing}
-    .pillDot{
-      width:8px;height:8px;border-radius:999px;background:var(--blue);
-      flex:0 0 auto;
-    }
-    .pillText{
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-      flex:1;
-    }
-    .pillTime{
-      font-weight:900;color:var(--muted);
-      flex:0 0 auto;
-    }
-    .moreLink{
-      margin-top:6px;
+      background:#fafbff;
+      color:#374151;
       font-size:12px;
-      font-weight:900;
-      color:var(--blue2);
-      cursor:pointer;
-      user-select:none;
     }
-    .dropHint{
-      outline:2px dashed rgba(37,99,235,.40);
-      outline-offset:3px;
+    .debug{
+      margin-top:10px;
+      padding:10px 12px;border-radius:12px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-size:12px;
+      color:#111827;
+      display:none;
+      white-space:pre-wrap;
     }
-
-  
-    /* ===== Google Calendar-like canvas (v5) ===== */
-    body{background:#ffffff}
-    .topbar{background:#ffffff;border-bottom:1px solid #e6e9ef}
-    .card{max-width:1200px;border-radius:18px;box-shadow:none}
-    .divider{border-top:1px solid #eef1f6}
     .dowHeader{
       display:grid;
       grid-template-columns: repeat(7, 1fr);
-      border-left:1px solid #e6e9ef;
-      border-right:1px solid #e6e9ef;
-      border-top:1px solid #e6e9ef;
+      border:1px solid var(--line);
+      border-bottom:0;
       border-radius:16px 16px 0 0;
       overflow:hidden;
-      max-width:1200px;
-      margin:0 auto;
+      margin-top:12px;
     }
     .dowHeader > div{
       padding:10px 12px;
-      font-size:12px;
-      font-weight:800;
-      color:#6b7280;
-      background:#ffffff;
-      border-right:1px solid #e6e9ef;
+      font-size:12px;font-weight:900;
+      color:var(--muted);
+      border-right:1px solid var(--line);
       text-transform:uppercase;
       letter-spacing:.06em;
+      background:#fff;
     }
     .dowHeader > div:last-child{border-right:0}
     .monthGrid{
       display:grid;
       grid-template-columns: repeat(7, 1fr);
-      border-left:1px solid #e6e9ef;
-      border-right:1px solid #e6e9ef;
-      border-bottom:1px solid #e6e9ef;
+      border:1px solid var(--line);
+      border-top:0;
       border-radius:0 0 16px 16px;
       overflow:hidden;
-      max-width:1200px;
-      margin:0 auto;
     }
     .dayCell{
       min-height:140px;
       padding:10px 10px 8px;
-      border-right:1px solid #e6e9ef;
-      border-top:1px solid #e6e9ef;
-      background:#ffffff;
-      border-radius:0;
-      box-shadow:none;
+      border-right:1px solid var(--line);
+      border-top:1px solid var(--line);
+      background:#fff;
       transition: background .12s ease;
+      min-width:0;
     }
     .dayCell:nth-child(7n){border-right:0}
-    .dayCell:hover{background:#fafbff;transform:none}
+    .dayCell:hover{background:#fafbff}
     .dayTop{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px}
     .dayNum{
-      font-size:12px;
-      font-weight:900;
-      color:#111827;
       width:26px;height:26px;border-radius:999px;
       display:grid;place-items:center;
+      font-weight:900;font-size:12px;
+      color:#111827;
     }
-    .dayNum.today{background:#1a73e8;color:#fff}
-    .dayMeta{
-      font-size:12px;
-      font-weight:800;
-      color:#6b7280;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
+    .dayNum.today{background:var(--blue);color:#fff}
+    .dayMeta{font-size:12px;font-weight:900;color:var(--muted)}
     .eventBar{
-      display:flex;
-      align-items:center;
-      gap:8px;
+      display:flex;align-items:center;
       padding:4px 8px;
       border-radius:10px;
       font-size:12px;
-      font-weight:700;
-      color:#0f172a;
-      background:#e8f0fe;
+      font-weight:800;
+      background:var(--blueBg);
+      border:1px solid var(--blueLine);
       margin-top:6px;
       cursor:grab;
       user-select:none;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      border:1px solid #d7e3ff;
     }
     .eventBar:active{cursor:grabbing}
-    .eventTimeBadge{
-      font-size:11px;
-      font-weight:900;
-      color:#1a73e8;
-      flex:0 0 auto;
-    }
-    .eventText{
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-    .moreLink{
-      margin-top:6px;
-      font-size:12px;
-      font-weight:900;
-      color:#1a73e8;
-      cursor:pointer;
-      user-select:none;
-    }
+    .eventText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .moreLink{margin-top:6px;font-size:12px;font-weight:900;color:var(--blue);cursor:pointer;user-select:none}
     .dropHint{outline:2px dashed rgba(26,115,232,.45); outline-offset:-6px}
-
-  
-    /* ===== iPhone / small screen polish (v9) ===== */
-    html, body { overflow-x: hidden; }
-    .monthGrid, .dowHeader { width: 100%; max-width: 1200px; }
-    .dayCell { min-width: 0; }
-
+    .modalBackdrop{
+      position:fixed;inset:0;background:rgba(15,23,42,.45);
+      display:none;align-items:center;justify-content:center;
+      padding:14px; z-index:100;
+    }
+    .modal{
+      width:min(720px, 100%);
+      background:#fff;
+      border-radius:18px;
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .modalHead{
+      padding:12px 14px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      border-bottom:1px solid var(--line);
+      background:#fff;
+    }
+    .modalHead .h{font-weight:900}
+    .modalBody{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .modalBody .full{grid-column:1 / -1}
+    .modalBody label{display:block;font-size:12px;color:var(--muted);margin:6px 0 6px;font-weight:900}
+    .modalBody input, .modalBody textarea{
+      width:100%;
+      padding:10px 12px;border-radius:12px;border:1px solid var(--line);
+      outline:none;
+    }
+    textarea{min-height:88px;resize:vertical}
+    .modalFoot{
+      padding:12px 14px;
+      border-top:1px solid var(--line);
+      display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+      background:#fff;
+    }
+    .danger{background:#ef4444;border-color:#ef4444}
+    .muted{color:var(--muted)}
     @media (max-width: 520px){
-      body{ background:#ffffff; }
-      .wrap{ padding: 10px; }
-      .topbar{ padding: 12px 10px; }
-      .brand{ gap:10px; }
-      .brand h1{ font-size: 18px; line-height:1.1; }
-      .brand .sub{ font-size: 12px; line-height:1.2; }
-
-      .card{ max-width: 100%; border-radius: 16px; padding: 12px; }
-      .gcalToolbar{ gap:8px; }
-      .gcalTitle{ font-size: 16px; padding: 6px 10px; }
-      button, .secondary { padding: 10px 12px; border-radius: 12px; }
-      button.small{ padding: 8px 10px; }
-      .plus{ width: 44px; height: 44px; border-radius: 14px; font-size: 22px; }
-
-      /* controls: stack into 2 rows */
-      .gcalControls{
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
-      .ctrl label{ margin: 8px 0 4px; font-size: 11px; }
-      .ctrl input[type="date"], .ctrl select{
-        width: 100%;
-        padding: 10px 12px;
-        border-radius: 12px;
-      }
-      #whoami{ font-size: 11px; }
-
-      /* weekday header + grid (no rounded pills, like Google Calendar) */
-      .dowHeader{
-        max-width: 100%;
-        border-radius: 14px 14px 0 0;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background: #fff;
-      }
-      .dowHeader > div{
-        padding: 8px 8px;
-        font-size: 11px;
-        letter-spacing: .04em;
-      }
-      .monthGrid{
-        max-width: 100%;
-        border-radius: 0 0 14px 14px;
-      }
-      .dayCell{
-        min-height: 92px;
-        padding: 8px 6px 6px;
-      }
-      .dayTop{ margin: 0 0 6px; }
-      .dayMeta{ display:none; }
-      .dayNum{
-        width: 24px; height: 24px; font-size: 12px;
-      }
-
-      /* event bars compact */
-      .eventBar{
-        padding: 4px 6px;
-        border-radius: 9px;
-        font-size: 11px;
-      }
-      .eventTimeBadge{
-        display:none; /* keep cleaner on iPhone */
-      }
-
-      .moreLink{ font-size: 11px; }
-
-      /* Reduce footer hint */
-      .fixedBottom{ padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
-      .fixedInner{ font-size: 12px; }
+      .wrap{padding:10px}
+      .topInner{padding:12px 10px}
+      .brandTitle .t{font-size:16px}
+      .controls{grid-template-columns: 1fr 1fr; gap:8px}
+      .dayCell{min-height:92px;padding:8px 6px 6px}
+      .dayMeta{display:none}
+      .eventBar{font-size:11px;padding:4px 6px}
+      .dowHeader{position:sticky;top:62px;z-index:40;background:#fff}
     }
-
-    /* iOS safe area for bottom bars */
-    .fixedBottom{
-      padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    }
-
   </style>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="./config.js"></script>
 </head>
-
 <body>
-
-<div id="buildBanner" style="
-  position:sticky;top:0;z-index:9999;
-  background:#111827;color:#fff;
-  padding:10px 12px;
-  display:flex;gap:10px;align-items:center;justify-content:space-between;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-">
-  <div style="font-weight:900;">BUILD v16 2025-12-26 08:23 UTC</div>
-  <div style="display:flex;gap:8px;align-items:center;">
-    <button id="clickTest" style="
-      background:#f59e0b;color:#111827;
-      border:0;border-radius:10px;
-      padding:8px 12px;font-weight:900;cursor:pointer;
-    " onclick="alert('CLICK WORKS'); document.getElementById('buildBanner').style.background='#16a34a';">
-      TEST CLICK
-    </button>
-  </div>
-</div>
-
-  <div class="toast" id="toast"></div>
-
   <div class="topbar">
-    <div class="topbarInner">
+    <div class="topInner">
       <div class="brand">
         <div class="logo">KG</div>
-        <div>
-          <div class="title">KG Demolish Calendar</div>
-          <div class="subtitle">Free PWA (iPhone + Desktop) • Sync (Google Calendar) • WhatsApp daily schedule</div>
+        <div class="brandTitle">
+          <div class="t">KG Demolish Calendar</div>
+          <div class="s">Edit jobs + send WhatsApp daily schedule</div>
         </div>
       </div>
-      <div class="row">
-        <span class="pill">
-          <span class="muted" style="font-weight:900">View</span>
-          <select id="viewSel" style="width:auto;padding:10px 12px;font-size:15px;border-radius:999px">
-            <option value="day">Day</option>
-            <option value="week">Week</option>
-            <option value="month" selected>Month</option>
-          </select>
-        </span>
-        <button class="secondary small" id="installTipBtn">Install</button>
-      </div>
+      <div class="muted" id="buildTag" style="font-size:12px;font-weight:900;">CLEAN v1</div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="row" style="justify-content:space-between">
-      <div>
-        <div class="sectionTitle">Schedule</div>
-        <div class="muted">Use <span class="kbd">+</span> to add jobs. Tap a job to Edit / Copy / Delete. Month view: drag to move/copy, double-tap day to add.</div>
-      </div>
-      
-      <div class="gcalToolbar">
-        <div class="gcalLeft">
+  <div class="wrap">
+    <div class="card">
+      <div class="toolbar">
+        <div class="left">
           <button class="secondary small" id="todayBtn">Today</button>
           <button class="secondary small" id="prevBtn" aria-label="Previous">◀</button>
           <button class="secondary small" id="nextBtn" aria-label="Next">▶</button>
-          <div class="gcalTitle" id="monthLabel">Month</div>
+          <div class="titlePill" id="monthLabel">Month</div>
         </div>
-        <div class="gcalRight">
+        <div class="right">
           <button class="secondary small" id="loadBtn">Load</button>
-          <button class="plus" id="newBtn" title="Add">+</button>
+          <button class="plus" id="newBtn" title="Add job">+</button>
         </div>
       </div>
 
+      <div class="controls">
+        <div class="ctrl">
+          <label>Date</label>
+          <input id="datePick" type="date"/>
+        </div>
+        <div class="ctrl">
+          <label>View</label>
+          <select id="viewSel">
+            <option value="month" selected>Month</option>
+            <option value="day">Day</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <label>Account</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="secondary" id="authBtn">Authorize</button>
+            <button class="secondary" id="logoutBtn">Logout</button>
+          </div>
+          <div class="whoami" id="whoami">Not signed in</div>
+        </div>
+        <div class="ctrl">
+          <label>WhatsApp</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="secondary" id="copyWaBtn">Copy</button>
+            <button id="openWaBtn">Pop-out</button>
+          </div>
+          <div class="whoami">Exports selected date only</div>
+        </div>
+        <div class="ctrl">
+          <label>Calendar</label>
+          <select id="calSel">
+            <option value="primary">Primary</option>
+          </select>
+          <div class="whoami">Pick a writable calendar</div>
+        </div>
+      </div>
+
+      <div class="status" id="status">Ready.</div>
+      <div class="debug" id="debugBox"></div>
+
+      <div class="dowHeader" id="dowHeader" style="display:none;">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
+      <div class="monthGrid" id="monthGrid" style="display:none;"></div>
+
+      <div id="dayList" style="display:none;margin-top:12px"></div>
     </div>
-
-    
-    <div class="gcalControls">
-      <div class="ctrl">
-        <label>Date</label>
-        <input id="datePick" type="date" />
-      </div>
-      <div class="ctrl">
-        <label>View</label>
-        <select id="viewSel">
-          <option value="month" selected>Month</option>
-          <option value="week">Week</option>
-          <option value="day">Day</option>
-        </select>
-      </div>
-      <div class="ctrl">
-        <label>Account</label>
-        <div class="row">
-          <button class="secondary" id="authTopBtn" onclick="if(window.authorizeNow){window.authorizeNow()}else{alert(\'App script not loaded. Hard refresh (Ctrl+F5) or clear site data.\')}">Authorize</button>
-          <button class="secondary" id="logoutTopBtn">Logout</button>
-        </div>
-        <div class="muted" id="whoami" style="margin-top:6px;">Not signed in</div>
-      </div>
-      <div class="ctrl">
-        <label>Calendar</label>
-        <select id="calSel"></select>
-        <div class="muted" style="margin-top:6px;">Pick a writable calendar. If "Primary" fails, choose your KG Demolish calendar here.</div>
-      </div>
-      <div class="ctrl">
-        <label>WhatsApp</label>
-        <div class="row">
-          <button class="secondary" id="copyWaBtn">Copy</button>
-          <button id="openWaBtn">Pop-out</button>
-        </div>
-      </div>
-    </div>
-
-
-    <div class="divider"></div>
-    <div id="status" class="muted">Ready. (BUILD v16 2025-12-26 08:23 UTC)</div>
   </div>
 
-  <div class="card">
-    <div class="row" style="justify-content:space-between">
-      <div>
-        <div class="sectionTitle" id="listTitle">Jobs</div>
-        <div class="muted" id="listSub">Sorted by time. No time = ALL DAY.</div>
-      </div>
-      <div class="row">
-        <button class="secondary small" id="authTopBtn" onclick="alert('Authorize button clicked'); if(window.authorizeNow){window.authorizeNow()} else {alert('authorizeNow missing')}">Authorize</button>
-        <button class="secondary small" id="logoutTopBtn">Logout</button>
-      </div>
-    </div>
-
-    <div id="dowHeader" class="dowHeader" style="display:none;"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
-      <div id="monthGrid" style="display:none;"></div>
-
-    <div id="events"></div>
-
-    <div class="divider"></div>
-    <div class="sectionTitle">WhatsApp message preview</div>
-    <pre id="preview"></pre>
-  </div>
-
-  <!-- Modal -->
-  <div class="modalBackdrop" id="modalBackdrop">
+  <div class="modalBackdrop" id="modalBk">
     <div class="modal">
       <div class="modalHead">
-        <div>
-          <h2 id="modalTitle">New Job</h2>
-          <div class="muted">Saved inside the app (export backup anytime).</div>
-        </div>
-        <div class="row">
-          <button class="secondary small" id="closeModalBtn">Close</button>
-        </div>
+        <div class="h" id="modalTitle">New Job</div>
+        <button class="secondary small" id="closeModalBtn">✕</button>
       </div>
-
-      <div class="grid2" style="margin-top:10px">
+      <div class="modalBody">
         <div>
           <label>Job date</label>
-          <input id="fDate" type="date" />
-          <div class="muted">Default = selected date.</div>
+          <input id="fDate" type="date"/>
         </div>
         <div>
           <label>Time (optional)</label>
-          <input id="fTime" type="time" />
-          <div class="muted">Leave blank = ALL DAY.</div>
+          <input id="fTime" placeholder="09:00 (optional)" />
+        </div>
+
+        <div class="full">
+          <label>Address</label>
+          <input id="fAddr" placeholder="Address"/>
+        </div>
+
+        <div>
+          <label>Contact</label>
+          <input id="fContact" placeholder="Name / Phone"/>
         </div>
         <div>
-          <label>Copy to date (optional)</label>
-          <input id="fCopyDate" type="date" />
-          <div class="muted">If filled, Save will also copy to that date.</div>
+          <label>Lock No</label>
+          <input id="fLock" placeholder="Lock number"/>
+        </div>
+
+        <div class="full">
+          <label>Remove</label>
+          <input id="fRemove" placeholder="Remove :"/>
+        </div>
+
+        <div>
+          <label>Keep</label>
+          <input id="fKeep" placeholder="Keep :"/>
+        </div>
+        <div>
+          <label>Protect</label>
+          <input id="fProtect" placeholder="Protect :"/>
+        </div>
+
+        <div class="full">
+          <label>Disposal</label>
+          <input id="fDisposal" placeholder="Disposal :"/>
+        </div>
+
+        <div class="full">
+          <label>Preview (saved into Google Calendar description)</label>
+          <textarea id="preview" readonly></textarea>
+          <div class="muted" style="margin-top:6px">Tip: Drag a job to another date to Move. Hold SHIFT while dropping to Copy (desktop). On phone, you will be asked Move/Copy.</div>
         </div>
       </div>
-
-      <label>Address</label>
-      <input id="fAddr" placeholder="Address: " />
-
-      <div class="divider"></div>
-      <div class="sectionTitle">SCOPE</div>
-
-      <label>Remove</label>
-      <input id="fRemove" placeholder="Remove :" />
-
-      <label>Keep</label>
-      <input id="fKeep" placeholder="Keep :" />
-
-      <label>Protect</label>
-      <input id="fProtect" placeholder="Protect :" />
-
-      <label>Disposal</label>
-      <input id="fDisposal" placeholder="Disposal :" />
-
-      <div class="row" style="margin-top:12px;justify-content:space-between">
-        <div class="row">
+      <div class="modalFoot">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="secondary" id="clearBtn">Clear</button>
+          <button class="danger" id="deleteBtn" style="display:none;">Delete</button>
         </div>
-        <div class="row">
-          <button class="danger" id="delBtn" style="display:none">Delete</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="secondary" id="copyToBtn" style="display:none;">Copy to date</button>
           <button id="saveBtn">Save</button>
         </div>
-      </div>
-
-      <div class="muted" style="margin-top:10px">
-        Tip: Add many jobs in one day. Then press <b>Copy WhatsApp</b>.
       </div>
     </div>
   </div>
 
-  <div class="fixedBottom"><div class="fixedInner"><div class="muted">Month view: drag events to another day to Move/Copy. Double-tap a day to add.</div></div></div>
-  </div>
-
-  <script>
-/* ===============================
-   KG Demolish Calendar (SYNC via Google Calendar)
-   =============================== */
-
+<script>
 const CFG = window.APP_CONFIG || {};
-const CLIENT_ID = CFG.CLIENT_ID || "PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com";
-
-// --- v15: robust Google login bootstrap + hard debug ---
-function dbg(t){
-  const b = document.getElementById("debugBox");
-  if(b){ b.style.display="block"; b.textContent = t; }
-
-window.addEventListener("error", (e)=>{
-  try{
-    const msg = (e?.message || "Unknown JS error") + (e?.filename ? (" @ " + e.filename + ":" + e.lineno) : "");
-    if(typeof dbg === "function") dbg(msg);
-    alert(msg);
-  }catch{}
-});
-  try{ console.log("[KG]", t); }catch{}
-}
-
-function loadGsiClient(){
-  return new Promise((resolve, reject)=>{
-    if(window.google && google.accounts && google.accounts.oauth2) return resolve(true);
-    const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
-    if(existing){
-      existing.addEventListener("load", ()=>resolve(true), { once:true });
-      existing.addEventListener("error", ()=>reject(new Error("Failed to load Google login script")), { once:true });
-      return;
-    }
-    const s = document.createElement("script");
-    s.src = "https://accounts.google.com/gsi/client";
-    s.async = true; s.defer = true;
-    s.onload = ()=>resolve(true);
-    s.onerror = ()=>reject(new Error("Failed to load Google login script (blocked by extension/network)"));
-    document.head.appendChild(s);
-  });
-}
-
-let tokenClient = null;
-
-async function ensureTokenClient(){
-  await loadGsiClient();
-  if(!(window.google && google.accounts && google.accounts.oauth2)){
-    throw new Error("Google login library not ready");
-  }
-  if(!CLIENT_ID){
-    throw new Error("CLIENT_ID missing in config.js");
-  }
-  if(!tokenClient){
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: async (resp)=>{
-        try{
-          if(resp.error) throw new Error(resp.error);
-          accessToken = resp.access_token;
-          dbg("Authorized ✓");
-          toast("Authorized");
-          const me = await fetchWhoAmI();
-          const who = document.getElementById("whoami");
-          if(who) who.textContent = me?.email ? (`Signed in: ${me.email}`) : "Signed in";
-          await initCalendarsUI();
-          setStatus("Authorized. Loading…");
-          await load();
-        }catch(e){
-          dbg("Authorize callback error: " + (e?.message||e));
-          setStatus(e?.message || String(e));
-          alert("Authorize error: " + (e?.message||e));
-        }
-      }
-    });
-  }
-  return tokenClient;
-}
-
-// Global function called by inline onclick
-window.authorizeNow = async function(){
-  try{
-    dbg("Authorize clicked…");
-    const tc = await ensureTokenClient();
-    tc.requestAccessToken({ prompt: "consent" });
-  }catch(e){
-    dbg(e?.message || String(e));
-    alert(e?.message || String(e));
-  }
-};
+const CLIENT_ID = CFG.CLIENT_ID || "";
+const DEFAULT_FILTER = CFG.DEFAULT_FILTER || "#KG";
+const TITLE_PREFIX = CFG.TITLE_PREFIX || "KG ";
+const DEFAULT_DURATION_MIN = Number(CFG.DEFAULT_DURATION_MIN || 120);
 const DEFAULT_CALENDAR_ID = CFG.CALENDAR_ID || "primary";
 let ACTIVE_CALENDAR_ID = localStorage.getItem("kg_active_calendar") || DEFAULT_CALENDAR_ID;
-const DEFAULT_FILTER = (CFG.DEFAULT_FILTER ?? "#KG").trim();
-const DEFAULT_DURATION_MIN = Number(CFG.DEFAULT_DURATION_MIN || 120);
-const TITLE_PREFIX = (CFG.TITLE_PREFIX ?? "KG ").trim();
 
 const SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly openid email";
-
+let accessToken = "";
 let tokenClient = null;
-let accessToken = null;
+
 let lastEvents = [];
+let modalMode = "new";
+let editingEvent = null;
 
 const $ = (id)=>document.getElementById(id);
 
-function toast(msg){
-  const t = $("toast");
-  t.textContent = msg;
-  t.style.display = "block";
-  clearTimeout(toast._tm);
-  toast._tm = setTimeout(()=> t.style.display="none", 1600);
+function setStatus(t){ $("status").textContent = t; }
+function dbg(t){
+  const b = $("debugBox");
+  b.style.display = "block";
+  b.textContent = String(t);
+  console.log("[KG]", t);
 }
-function setStatus(msg){ $("status").textContent = msg; }
+window.addEventListener("error", (e)=>{
+  try{
+    const msg = (e?.message || "JS error") + (e?.filename ? (" @ " + e.filename + ":" + e.lineno) : "");
+    dbg(msg);
+    alert(msg);
+  }catch{}
+});
 
 function isoDateLocal(d){
-  const off = d.getTimezoneOffset();
-  const d2 = new Date(d.getTime() - off*60000);
-  return d2.toISOString().slice(0,10);
+  const x = new Date(d);
+  const y = x.getFullYear();
+  const m = String(x.getMonth()+1).padStart(2,"0");
+  const da = String(x.getDate()).padStart(2,"0");
+  return `${y}-${m}-${da}`;
 }
-function addDays(dateStr, delta){
-  const [y,m,d] = dateStr.split("-").map(Number);
-  const dt = new Date(y, m-1, d+delta);
-  return isoDateLocal(dt);
-}
-function rfc3339(dt){
-  const pad = (n)=> String(n).padStart(2,"0");
-  const tz = -dt.getTimezoneOffset();
-  const sign = tz>=0?"+":"-";
-  const hh = pad(Math.floor(Math.abs(tz)/60));
-  const mm = pad(Math.abs(tz)%60);
-  return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}${sign}${hh}:${mm}`;
-}
-function rfcRangeForDay(dateStr){
-  const [y,m,d] = dateStr.split("-").map(Number);
-  const start = new Date(y, m-1, d, 0,0,0);
-  const end = new Date(y, m-1, d+1, 0,0,0);
-  return { timeMin: rfc3339(start), timeMax: rfc3339(end) };
-}
-function mondayOfWeek(dateStr){
-  const [y,m,d] = dateStr.split("-").map(Number);
-  const dt = new Date(y, m-1, d);
-  const day = dt.getDay();
-  const diffToMon = (day === 0) ? -6 : (1 - day);
-  dt.setDate(dt.getDate() + diffToMon);
-  return isoDateLocal(dt);
-}
-function rfcRangeForWeek(dateStr){
-  const mon = mondayOfWeek(dateStr);
-  const {timeMin} = rfcRangeForDay(mon);
-  const nextMon = addDays(mon, 7);
-  const {timeMax} = rfcRangeForDay(nextMon);
-  return { timeMin, timeMax, mon, nextMon };
-}
-
-
-async function fetchWhoAmI(){
-  try{
-    const res = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
-      headers: { "Authorization": `Bearer ${accessToken}` }
-    });
-    if(!res.ok) return null;
-    return res.json();
-  }catch{ return null; }
-}
-
-async function fetchWritableCalendars(){
-  // Returns list of calendars user can write to.
-  const url = "https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=writer&maxResults=250";
-  const data = await apiFetch(url);
-  const items = (data.items || []).map(c => ({
-    id: c.id,
-    summary: c.summary || c.id,
-    primary: !!c.primary
-  }));
-  // Put primary first
-  items.sort((a,b)=> (b.primary?1:0) - (a.primary?1:0) || a.summary.localeCompare(b.summary));
-  return items;
-}
-
-function setActiveCalendar(id){
-  ACTIVE_CALENDAR_ID = id || DEFAULT_CALENDAR_ID;
-  localStorage.setItem("kg_active_calendar", ACTIVE_CALENDAR_ID);
-}
-
-function showCalendars(items){
-  const sel = document.getElementById("calSel");
-  if(!sel) return;
-  sel.innerHTML = "";
-  for(const c of items){
-    const opt = document.createElement("option");
-    opt.value = c.id;
-    opt.textContent = c.primary ? `Primary — ${c.summary}` : c.summary;
-    sel.appendChild(opt);
-  }
-  sel.value = ACTIVE_CALENDAR_ID;
-}
-
-async function initCalendarsUI(){
-  const sel = document.getElementById("calSel");
-  if(!sel) return;
-
-  try{
-    const items = await fetchWritableCalendars();
-    showCalendars(items);
-
-    sel.onchange = async ()=>{
-      setActiveCalendar(sel.value);
-      toast("Calendar selected");
-      await load();
-    };
-  }catch(e){
-    // If calendarList fails, still allow manual primary
-    sel.innerHTML = `<option value="${DEFAULT_CALENDAR_ID}">Primary</option>`;
-    sel.value = DEFAULT_CALENDAR_ID;
-  }
-}
-
-async function apiFetch(url, opts={}){
-  if(!accessToken) throw new Error("Not authorized. Tap Authorize.");
-  const headers = Object.assign({}, opts.headers || {}, {
-    "Authorization": `Bearer ${accessToken}`,
-    "Accept": "application/json"
-  });
-  if(opts.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
-  const res = await fetch(url, Object.assign({}, opts, { headers }));
-  if(!res.ok){
-    const t = await res.text().catch(()=> "");
-    throw new Error(`API ${res.status}: ${t.slice(0,160)}`);
-  }
-  if(res.status === 204) return null;
-  return res.json();
-}
-
-function fmtTime(ev){
-  if(ev.start?.dateTime){
-    const dt = new Date(ev.start.dateTime);
-    return dt.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
-  }
-  return "ALL DAY";
-}
-function startDateLabel(ev){
-  if(ev.start?.dateTime) return isoDateLocal(new Date(ev.start.dateTime));
-  if(ev.start?.date) return ev.start.date;
-  return "";
+function pad2(n){ return String(n).padStart(2,"0"); }
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
 }
 
 function parseDescription(desc){
   const out = { addr:"", contact:"", lock:"", remove:"", keep:"", protect:"", disposal:"" };
-  const lines = (desc || "").split(/?
-/);
+  const lines = (desc || "").split(/\r?\n/);
   for(const raw of lines){
     const line = (raw || "").trim();
     if(!line) continue;
     const lower = line.toLowerCase();
     if(lower.startsWith("address:")) out.addr = line.slice(8).trim();
     else if(lower.startsWith("contact:")) out.contact = line.slice(8).trim();
-    else if(lower.startsWith("lock no:") || lower.startsWith("lockno:") || lower.startsWith("lock:")) {
+    else if(lower.startsWith("lock no:") || lower.startsWith("lockno:") || lower.startsWith("lock:")){
       out.lock = line.split(":").slice(1).join(":").trim();
-    }
-    else if(lower.startsWith("remove")) out.remove = line.split(":").slice(1).join(":").trim();
+    } else if(lower.startsWith("remove")) out.remove = line.split(":").slice(1).join(":").trim();
     else if(lower.startsWith("keep")) out.keep = line.split(":").slice(1).join(":").trim();
     else if(lower.startsWith("protect")) out.protect = line.split(":").slice(1).join(":").trim();
+    else if(lower.startsWith && lower.startsWith("disposal")) out.disposal = line.split(":").slice(1).join(":").trim();
     else if(lower.startsWith("disposal")) out.disposal = line.split(":").slice(1).join(":").trim();
   }
   return out;
@@ -952,697 +454,456 @@ function buildDescription(fields){
     `Keep : ${fields.keep || "__________"}`,
     `Protect : ${fields.protect || "_______"}`,
     `Disposal : ${fields.disposal || "____________________"}`
-  ].join("
-");
+  ].join("\n");
 }
-
-function buildWhatsAppForEvents(title, events){
-  const lines = [title, ""];
-  if(!events.length){
-    lines.push("(no job)");
-    return lines.join("
-");
-  }
-  for(const ev of events){
-    const fields = parseDescription((ev.description || "").trim());
-    const addr = fields.addr || "__________";
-    const contact = fields.contact || "__________";
-    const lock = fields.lock || "__________";
-    const remove = fields.remove || "__________";
-
-    lines.push(`Address: ${addr}`);
-    lines.push(`Remove: ${remove} | Contact: ${contact} | Lock No: ${lock}`);
-    lines.push("--------------------------------");
-  }
-  return lines.join("
-");
-}
-
-function escapeHtml(s){
-  return (s||"").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-}
-
-function eventCard(ev){
-  const div = document.createElement("div");
-  div.className = "event";
-  const desc = (ev.description || "").trim();
-  const addr = parseDescription(desc).addr || ev.location || "(No address)";
-  div.innerHTML = `
-    <div class="eventTime">${escapeHtml(fmtTime(ev))}</div>
-    <div class="eventMain">
-      <div class="eventTitle">${escapeHtml(addr)}</div>
-      <div class="eventMeta">${escapeHtml(desc || "(no details)")}</div>
-    </div>
-    <div class="actions">
-      <button class="secondary small" data-edit="${escapeHtml(ev.id)}">Edit</button>
-      <button class="secondary small" data-copy="${escapeHtml(ev.id)}">Copy</button>
-    </div>
-  `;
-  return div;
-}
-
-function renderList(items, view){
-  lastEvents = items;
-  const box = $("events");
-  box.innerHTML = "";
-  if(view === "week"){
-    const groups = {};
-    for(const ev of items){
-      const d = startDateLabel(ev) || "unknown";
-      groups[d] = groups[d] || [];
-      groups[d].push(ev);
-    }
-    const dates = Object.keys(groups).sort();
-    for(const d of dates){
-      const hdr = document.createElement("div");
-      hdr.className = "muted";
-      hdr.style.fontWeight = "900";
-      hdr.style.margin = "14px 0 6px";
-      hdr.textContent = d;
-      box.appendChild(hdr);
-      for(const ev of groups[d]){
-        box.appendChild(eventCard(ev));
-      }
-    }
-  } else {
-    if(!items.length){
-      box.innerHTML = `<div class="muted">No jobs yet. Tap + to add.</div>`;
-      return;
-    }
-    for(const ev of items){
-      box.appendChild(eventCard(ev));
-    }
-  }
-}
-
-async function fetchEvents(){
-  const dateStr = $("datePick").value;
-  const view = $("viewSel").value;
-
-  let range;
-  if(view === "week") range = rfcRangeForWeek(dateStr);
-  else range = rfcRangeForDay(dateStr);
-
-  const params = new URLSearchParams({
-    timeMin: range.timeMin,
-    timeMax: range.timeMax,
-    singleEvents: "true",
-    orderBy: "startTime",
-    maxResults: "250"
-  });
-  if(DEFAULT_FILTER) params.set("q", DEFAULT_FILTER);
-
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events?` + params.toString();
-  const data = await apiFetch(url);
-  const items = (data.items || []).filter(ev => ev.status !== "cancelled");
-  return { items, range };
-}
-
-function monthRange(dateStr){
-  const [y,m,_d] = dateStr.split("-").map(Number);
-  const first = new Date(y, m-1, 1, 0,0,0);
-  const next = new Date(y, m, 1, 0,0,0);
-  const from = isoDateLocal(first);
-  const to = isoDateLocal(new Date(next.getTime() - 86400000)); // last day of month
-  return { first, next, from, to };
-}
-
-async function fetchEventsMonth(dateStr){
-  const mr = monthRange(dateStr);
-  const timeMin = rfc3339(mr.first);
-  const timeMax = rfc3339(mr.next);
-  const params = new URLSearchParams({
-    timeMin, timeMax,
-    singleEvents: "true",
-    orderBy: "startTime",
-    maxResults: "2500"
-  });
-  if(DEFAULT_FILTER) params.set("q", DEFAULT_FILTER);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events?` + params.toString();
-  const data = await apiFetch(url);
-  const items = (data.items || []).filter(ev => ev.status !== "cancelled");
-  return { items, range: mr };
-}
-
 function chipLabel(ev){
-  const desc = (ev.description || "").trim();
-  const addr = parseDescription(desc).addr || ev.location || "";
-  return addr || "(No address)";
+  const f = parseDescription(ev.description || "");
+  return f.addr || ev.location || "(No address)";
 }
+function toast(t){ setStatus(t); }
 
-function groupByDate(items){
-  const g = {};
-  for(const ev of items){
-    const d = startDateLabel(ev);
-    if(!d) continue;
-    g[d] = g[d] || [];
-    g[d].push(ev);
+function setActiveCalendar(id){
+  ACTIVE_CALENDAR_ID = id || DEFAULT_CALENDAR_ID;
+  localStorage.setItem("kg_active_calendar", ACTIVE_CALENDAR_ID);
+}
+async function apiFetch(url, opts={}){
+  if(!accessToken) throw new Error("Not authorized");
+  const res = await fetch(url, {
+    ...opts,
+    headers: { ...(opts.headers||{}), "Authorization": `Bearer ${accessToken}` }
+  });
+  const text = await res.text();
+  if(!res.ok) throw new Error(`API ${res.status}: ${text.slice(0,220)}`);
+  return text ? JSON.parse(text) : {};
+}
+async function fetchWhoAmI(){
+  try{
+    const res = await fetch("https://openidconnect.googleapis.com/v1/userinfo", { headers:{ "Authorization": `Bearer ${accessToken}` }});
+    if(!res.ok) return null;
+    return res.json();
+  }catch{ return null; }
+}
+async function fetchWritableCalendars(){
+  const url = "https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=writer&maxResults=250";
+  const data = await apiFetch(url);
+  const items = (data.items||[]).map(c=>({ id:c.id, summary:c.summary||c.id, primary:!!c.primary }));
+  items.sort((a,b)=>(b.primary?1:0)-(a.primary?1:0) || a.summary.localeCompare(b.summary));
+  return items;
+}
+async function initCalendarsUI(){
+  const sel = $("calSel");
+  try{
+    const items = await fetchWritableCalendars();
+    sel.innerHTML = "";
+    for(const c of items){
+      const opt = document.createElement("option");
+      opt.value=c.id;
+      opt.textContent = c.primary ? `Primary — ${c.summary}` : c.summary;
+      sel.appendChild(opt);
+    }
+    if(items.find(x=>x.id===ACTIVE_CALENDAR_ID)) sel.value = ACTIVE_CALENDAR_ID;
+    else { sel.value = items[0]?.id || "primary"; setActiveCalendar(sel.value); }
+    sel.onchange = async ()=>{ setActiveCalendar(sel.value); toast("Calendar selected"); await load(); };
+  }catch{
+    sel.innerHTML = `<option value="primary">Primary</option>`;
+    sel.value="primary"; setActiveCalendar("primary");
   }
-  for(const k of Object.keys(g)){
-    g[k].sort((a,b)=> (a.start?.dateTime || a.start?.date || "").localeCompare(b.start?.dateTime || b.start?.date || ""));
+}
+async function ensureTokenClient(){
+  if(!CLIENT_ID || CLIENT_ID.includes("PASTE_YOUR")) throw new Error("CLIENT_ID not set in config.js");
+  if(!(window.google && google.accounts && google.accounts.oauth2)) throw new Error("Google login script not loaded. Disable adblock / refresh.");
+  if(!tokenClient){
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (resp)=>{
+        if(resp.error){ dbg(resp.error); alert(resp.error); return; }
+        accessToken = resp.access_token;
+        const me = await fetchWhoAmI();
+        $("whoami").textContent = me?.email ? (`Signed in: ${me.email}`) : "Signed in";
+        await initCalendarsUI();
+        await load();
+      }
+    });
+  }
+  return tokenClient;
+}
+async function authorize(){
+  try{
+    setStatus("Authorizing…");
+    const tc = await ensureTokenClient();
+    tc.requestAccessToken({ prompt:"consent" });
+  }catch(e){
+    dbg(e.message||e); alert(e.message||String(e));
+    setStatus("Authorize failed.");
+  }
+}
+function logout(){
+  accessToken="";
+  $("whoami").textContent="Not signed in";
+  setStatus("Logged out.");
+}
+function monthRange(anchor){
+  const d = new Date(anchor);
+  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+  const next = new Date(d.getFullYear(), d.getMonth()+1, 1);
+  return { first, next };
+}
+function fmtTime(ev){
+  const dt = new Date(ev.start.dateTime);
+  return `${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
+}
+function groupByDate(items){
+  const g={};
+  for(const ev of items){
+    const day = ev.start.date || (ev.start.dateTime ? isoDateLocal(new Date(ev.start.dateTime)) : "");
+    if(!day) continue;
+    (g[day] ||= []).push(ev);
   }
   return g;
 }
-
-async function moveEventToDate(ev, targetDateStr){
-  // Move existing event to target date, preserving time/duration
-  if(ev.start?.date){
-    const payload = {
-      summary: ev.summary,
-      location: ev.location || undefined,
-      description: ev.description || undefined,
-      start: { date: targetDateStr },
-      end: { date: addDays(targetDateStr, 1) }
-    };
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
-    await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
-    return;
-  }
-
-  const s = new Date(ev.start.dateTime);
-  const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
-  const [y,m,d] = targetDateStr.split("-").map(Number);
-  const start = new Date(y, m-1, d, s.getHours(), s.getMinutes(), 0);
-  const dur = e ? (e.getTime() - s.getTime()) : (DEFAULT_DURATION_MIN*60000);
-  const end = new Date(start.getTime() + dur);
-
-  const payload = {
-    summary: ev.summary,
-    location: ev.location || undefined,
-    description: ev.description || undefined,
-    start: { dateTime: start.toISOString() },
-    end: { dateTime: end.toISOString() }
-  };
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
-  await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
+function eventMatchesFilter(ev){
+  const hay = ((ev.summary||"") + " " + (ev.description||"") + " " + (ev.location||"")).toLowerCase();
+  return hay.includes(DEFAULT_FILTER.toLowerCase());
 }
-
-function renderMonth(items, range){
-  $("events").style.display = "none";
-  const mg = $("monthGrid");
-  const dow = $("dowHeader");
-  dow.style.display = "grid";
-  mg.style.display = "grid";
-  mg.className = "monthGrid";
-  mg.innerHTML = "";
-
-  lastEvents = items;
-  const grouped = groupByDate(items);
-
-  const monthName = range.first.toLocaleString(undefined, { month: "long", year: "numeric" });
-  const ml = document.getElementById("monthLabel");
-  if(ml) ml.textContent = monthName;
-
-  // Week starts Sunday
-  const first = range.first;
-  const firstDow = first.getDay(); // 0 Sun..6 Sat
-  const gridStart = new Date(first);
-  gridStart.setDate(first.getDate() - firstDow);
-
-  const today = isoDateLocal(new Date());
-
-  for(let i=0;i<42;i++){
-    const d = new Date(gridStart);
-    d.setDate(gridStart.getDate() + i);
-    const dateStr = isoDateLocal(d);
-    const inMonth = (d.getMonth() === first.getMonth());
-
-    const cell = document.createElement("div");
-    cell.className = "dayCell";
-    cell.setAttribute("data-day", dateStr);
-    if(!inMonth) cell.style.opacity = ".55";
-
-    const top = document.createElement("div");
-    top.className = "dayTop";
-
-    const num = document.createElement("div");
-    num.className = "dayNum" + (dateStr===today ? " today" : "");
-    num.textContent = String(d.getDate());
-    top.appendChild(num);
-
-    const meta = document.createElement("div");
-    meta.className = "dayMeta";
-    if(d.getDate() === 1){
-      meta.textContent = d.toLocaleString(undefined, { month: "short" }) + " " + d.getDate();
-    }else{
-      meta.textContent = "";
+async function fetchEvents(){
+  const view = $("viewSel").value;
+  const dateStr = $("datePick").value;
+  const anchor = new Date(dateStr+"T00:00:00");
+  let timeMin, timeMax, range=null;
+  if(view==="month"){
+    range = monthRange(anchor);
+    timeMin = range.first.toISOString(); timeMax = range.next.toISOString();
+  }else{
+    const start = new Date(anchor);
+    const end = new Date(anchor); end.setDate(end.getDate()+1);
+    timeMin = start.toISOString(); timeMax = end.toISOString();
+  }
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events?singleEvents=true&orderBy=startTime&maxResults=2500&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`;
+  const data = await apiFetch(url);
+  const items = (data.items||[]).filter(eventMatchesFilter);
+  return { items, range };
+}
+async function load(){
+  try{
+    if(!accessToken){
+      $("monthGrid").style.display="none";
+      $("dowHeader").style.display="none";
+      $("dayList").style.display="none";
+      setStatus("Not authorized. Click Authorize.");
+      return;
     }
-    top.appendChild(meta);
-
-    cell.appendChild(top);
+    setStatus("Loading…");
+    const view = $("viewSel").value;
+    const { items, range } = await fetchEvents();
+    lastEvents = items;
+    if(view==="month"){
+      renderMonth(items, range);
+      $("dayList").style.display="none";
+    }else{
+      $("monthGrid").style.display="none";
+      $("dowHeader").style.display="none";
+      renderDay(items);
+    }
+    setStatus("Loaded.");
+  }catch(e){
+    dbg(e.message||e); setStatus(e.message||String(e));
+    if(String(e.message||"").includes("API 404")){
+      toast("Calendar not found. Choose from Calendar dropdown.");
+      try{ await initCalendarsUI(); }catch{}
+    }
+  }
+}
+function renderDay(items){
+  $("dayList").style.display="block";
+  const box = $("dayList");
+  box.innerHTML = "<div style='font-weight:900'>Jobs (selected date)</div>";
+  if(!items.length){
+    const p=document.createElement("div"); p.className="muted"; p.style.marginTop="8px"; p.textContent="(no job)";
+    box.appendChild(p); return;
+  }
+  for(const ev of items){
+    const row=document.createElement("div");
+    row.style.marginTop="10px";
+    row.style.border="1px solid var(--line)";
+    row.style.borderRadius="14px";
+    row.style.padding="10px 12px";
+    row.style.display="flex";
+    row.style.justifyContent="space-between";
+    row.style.gap="10px";
+    row.style.alignItems="center";
+    const left=document.createElement("div");
+    left.style.minWidth="0";
+    left.innerHTML = `<div style="font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(chipLabel(ev))}</div>
+                      <div class="muted" style="font-size:12px;margin-top:2px;">${escapeHtml((ev.start?.dateTime)?fmtTime(ev):"ALL DAY")}</div>`;
+    const right=document.createElement("button");
+    right.className="secondary small"; right.textContent="Edit";
+    right.onclick=()=>openModal("edit", ev);
+    row.appendChild(left); row.appendChild(right);
+    box.appendChild(row);
+  }
+}
+function renderMonth(items, range){
+  $("dowHeader").style.display="grid";
+  $("monthGrid").style.display="grid";
+  const mg=$("monthGrid"); mg.innerHTML="";
+  $("monthLabel").textContent = range.first.toLocaleString(undefined, { month:"long", year:"numeric" });
+  const grouped = groupByDate(items);
+  const first = range.first;
+  const firstDow = first.getDay();
+  const gridStart = new Date(first); gridStart.setDate(first.getDate()-firstDow);
+  const today = isoDateLocal(new Date());
+  for(let i=0;i<42;i++){
+    const d=new Date(gridStart); d.setDate(gridStart.getDate()+i);
+    const dateStr = isoDateLocal(d);
+    const inMonth = d.getMonth()===first.getMonth();
+    const cell=document.createElement("div");
+    cell.className="dayCell"; cell.dataset.day=dateStr;
+    if(!inMonth) cell.style.opacity=".55";
+    const top=document.createElement("div"); top.className="dayTop";
+    const num=document.createElement("div"); num.className="dayNum"+(dateStr===today?" today":""); num.textContent=String(d.getDate());
+    const meta=document.createElement("div"); meta.className="dayMeta"; meta.textContent = (d.getDate()===1)?(d.toLocaleString(undefined,{month:"short"})+" 1"):"";
+    top.appendChild(num); top.appendChild(meta); cell.appendChild(top);
 
     const dayEvents = grouped[dateStr] || [];
-    const MAX_SHOW = 3;
-
+    const MAX_SHOW=3;
     function addBar(ev){
-      const bar = document.createElement("div");
-      bar.className = "eventBar";
-      bar.draggable = true;
-      bar.setAttribute("data-id", ev.id);
-
-      const tb = document.createElement("div");
-      tb.className = "eventTimeBadge";
-      tb.textContent = ev.start?.dateTime ? fmtTime(ev) : "ALL";
-      bar.appendChild(tb);
-
-      const tx = document.createElement("div");
-      tx.className = "eventText";
-      tx.textContent = chipLabel(ev);
-      bar.appendChild(tx);
-
-      bar.addEventListener("dragstart", (e)=>{
-        e.dataTransfer.setData("text/plain", ev.id);
-        e.dataTransfer.effectAllowed = "copyMove";
-      });
-
-      bar.addEventListener("click", ()=>{
-        openModal("edit", ev);
-      });
-
+      const bar=document.createElement("div");
+      bar.className="eventBar"; bar.draggable=true; bar.dataset.id=ev.id;
+      bar.innerHTML = `<div class="eventText">${escapeHtml(chipLabel(ev))}</div>`;
+      bar.addEventListener("dragstart",(e)=>{ e.dataTransfer.setData("text/plain", ev.id); e.dataTransfer.effectAllowed="copyMove"; });
+      bar.addEventListener("click",()=>openModal("edit", ev));
       cell.appendChild(bar);
     }
-
-    dayEvents.slice(0, MAX_SHOW).forEach(addBar);
-
-    if(dayEvents.length > MAX_SHOW){
-      const more = document.createElement("div");
-      more.className = "moreLink";
-      more.textContent = `+${dayEvents.length - MAX_SHOW} more`;
-      more.addEventListener("click", ()=>{
-        more.remove();
-        dayEvents.slice(MAX_SHOW).forEach(addBar);
-      });
+    dayEvents.slice(0,MAX_SHOW).forEach(addBar);
+    if(dayEvents.length>MAX_SHOW){
+      const more=document.createElement("div"); more.className="moreLink";
+      more.textContent = `+${dayEvents.length-MAX_SHOW} more`;
+      more.onclick=()=>{ more.remove(); dayEvents.slice(MAX_SHOW).forEach(addBar); };
       cell.appendChild(more);
     }
 
-    cell.addEventListener("dragover", (e)=>{ e.preventDefault(); cell.classList.add("dropHint"); });
-    cell.addEventListener("dragleave", ()=> cell.classList.remove("dropHint"));
+    cell.addEventListener("dragover",(e)=>{ e.preventDefault(); cell.classList.add("dropHint"); });
+    cell.addEventListener("dragleave",()=>cell.classList.remove("dropHint"));
     cell.addEventListener("drop", async (e)=>{
-      e.preventDefault();
-      cell.classList.remove("dropHint");
-      const id = e.dataTransfer.getData("text/plain");
-      const ev = lastEvents.find(x=> x.id === id);
-      if(!ev) return;
-
-      const wantCopy = !!e.shiftKey;
-      const isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
-      let act = wantCopy ? "C" : "M";
+      e.preventDefault(); cell.classList.remove("dropHint");
+      const id=e.dataTransfer.getData("text/plain");
+      const ev=lastEvents.find(x=>x.id===id); if(!ev) return;
+      const isTouch=("ontouchstart" in window) || (navigator.maxTouchPoints>0);
+      let act=(e.shiftKey && !isTouch)?"C":"M";
       if(isTouch){
-        const action = prompt("Type M = Move, C = Copy (default M):", "M");
-        act = (action || "M").trim().toUpperCase();
+        const a=prompt("Type M = Move, C = Copy (default M):","M");
+        act=(a||"M").trim().toUpperCase();
       }
-
       try{
-        setStatus(act === "C" ? "Copying…" : "Moving…");
-        if(act === "C"){
-          await copyEventToDate(ev, dateStr);
-          toast("Copied");
-        }else{
-          await moveEventToDate(ev, dateStr);
-          toast("Moved");
-        }
-        await load();
-      }catch(err){
-        setStatus(err.message);
-      }
+        setStatus(act==="C"?"Copying…":"Moving…");
+        if(act==="C") await copyEventToDate(ev, dateStr);
+        else await moveEventToDate(ev, dateStr);
+        await load(); toast(act==="C"?"Copied":"Moved");
+      }catch(err){ dbg(err.message||err); }
     });
 
-    cell.addEventListener("click", ()=>{ $("datePick").value = dateStr; });
-    cell.addEventListener("dblclick", ()=>{ $("datePick").value = dateStr; openModal("new"); });
+    cell.addEventListener("click",()=>{ $("datePick").value=dateStr; });
+    cell.addEventListener("dblclick",()=>{ $("datePick").value=dateStr; openModal("new"); });
 
     mg.appendChild(cell);
   }
 }
-
-async function load(){
-  setStatus("Loading…");
-  try{
-    const dateStr = $("datePick").value;
-    const view = $("viewSel").value;
-
-    if(view === "month"){
-      const { items, range } = await fetchEventsMonth(dateStr);
-      renderMonth(items, range);
-      $("preview").textContent = buildWhatsAppForEvents(`KG DEMOLISH MONTH SCHEDULE: ${range.from} → ${range.to}`, items);
-      setStatus(`Loaded ${items.length} job(s).`);
-      return;
-    }
-
-    const { items, range } = await fetchEvents();
-    $("monthLabel").textContent = dateStr;
-    $("monthGrid").style.display = "none";
-    $("dowHeader").style.display = "none";
-    $("events").style.display = "block";
-    renderList(items, view);
-
-    if(view === "week"){
-      const title = `KG DEMOLISH WEEK SCHEDULE: ${range.mon} → ${range.nextMon}`;
-      $("preview").textContent = buildWhatsAppForEvents(title, items);
-    } else {
-      $("preview").textContent = buildWhatsAppForEvents(`KG DEMOLISH DAILY SCHEDULE: ${dateStr}`, items);
-    }
-
-    setStatus(`Loaded ${items.length} job(s).`);
-  }catch(e){
-    setStatus(e.message);
-    $("events").innerHTML = `<div class="muted">${escapeHtml(e.message)}</div>`;
-    $("preview").textContent = "";
-    lastEvents = [];
-    // If calendar not found (404), reload calendar list so user can pick the right calendar
-    if(String(e.message || "").includes("API 404")){
-      try{ await initCalendarsUI(); }catch{}
-      toast("Calendar not found. Select a calendar.");
-    }
-  }
-}
-
-// ---- CRUD ----
-function currentDate(){ return ($("fDate") && $("fDate").value) ? $("fDate").value : $("datePick").value; }
-
 function openModal(mode, ev=null){
-  $("modalBackdrop").style.display = "block";
-  $("fCopyDate").value = "";
-  if($("fDate")) $("fDate").value = $("datePick").value;
-if($("fDate")) $("fDate").value = $("datePick").value;
-  if(mode === "new"){
-    $("modalTitle").textContent = "New Job";
-    $("delBtn").style.display = "none";
-    $("modalBackdrop").setAttribute("data-event-id", "");
-    $("fTime").value = "";
-    $("fAddr").value = "";
-    if($("fContact")) $("fContact").value = "";
-    if($("fLock")) $("fLock").value = "";
-    $("fRemove").value = "";
-    $("fKeep").value = "";
-    $("fProtect").value = "";
-    $("fDisposal").value = "";
-    return;
-  }
-  $("modalTitle").textContent = "Edit Job";
-  $("delBtn").style.display = "inline-block";
-  $("modalBackdrop").setAttribute("data-event-id", ev.id);
-
-  if(ev.start?.dateTime){
-    const s = new Date(ev.start.dateTime);
-    $("fTime").value = s.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:false});
+  modalMode=mode; editingEvent=ev;
+  $("modalBk").style.display="flex";
+  const dateStr = $("datePick").value || isoDateLocal(new Date());
+  if(mode==="new"){
+    $("modalTitle").textContent="New Job";
+    $("deleteBtn").style.display="none";
+    $("copyToBtn").style.display="none";
+    $("saveBtn").textContent="Save";
+    $("fDate").value=dateStr;
+    $("fTime").value=""; $("fAddr").value=""; $("fContact").value=""; $("fLock").value="";
+    $("fRemove").value=""; $("fKeep").value=""; $("fProtect").value=""; $("fDisposal").value="";
   }else{
-    $("fTime").value = "";
+    $("modalTitle").textContent="Edit Job";
+    $("deleteBtn").style.display="inline-block";
+    $("copyToBtn").style.display="inline-block";
+    $("saveBtn").textContent="Update";
+    const startDay = ev.start.date || (ev.start.dateTime ? isoDateLocal(new Date(ev.start.dateTime)) : dateStr);
+    $("fDate").value=startDay;
+    $("fTime").value = ev.start.dateTime ? fmtTime(ev) : "";
+    const f=parseDescription(ev.description||"");
+    $("fAddr").value=f.addr||""; $("fContact").value=f.contact||""; $("fLock").value=f.lock||"";
+    $("fRemove").value=f.remove||""; $("fKeep").value=f.keep||""; $("fProtect").value=f.protect||""; $("fDisposal").value=f.disposal||"";
   }
-
-  if($("fDate")) $("fDate").value = startDateLabel(ev) || $("datePick").value;
-  if($("fDate")) $("fDate").value = startDateLabel(ev) || $("datePick").value;
-
-  const fields = parseDescription(ev.description || "");
-  $("fAddr").value = fields.addr || "";
-  if($("fContact")) $("fContact").value = fields.contact || "";
-  if($("fLock")) $("fLock").value = fields.lock || "";
-  $("fRemove").value = fields.remove || "";
-  $("fKeep").value = fields.keep || "";
-  $("fProtect").value = fields.protect || "";
-  $("fDisposal").value = fields.disposal || "";
+  refreshPreview();
 }
-
-function closeModal(){ $("modalBackdrop").style.display = "none"; }
-
-function buildEventPayloadForDate(dateStr){
-  const time = ($("fTime").value || "").trim();
-  const fields = {
-    addr: ($("fAddr").value || "").trim(),
-    contact: ($("fContact")?$("fContact").value:"").trim(),
-    lock: ($("fLock")?$("fLock").value:"").trim(),
-    remove: ($("fRemove").value || "").trim(),
-    keep: ($("fKeep").value || "").trim(),
-    protect: ($("fProtect").value || "").trim(),
-    disposal: ($("fDisposal").value || "").trim(),
+function closeModal(){ $("modalBk").style.display="none"; editingEvent=null; }
+function collectFields(){
+  return {
+    addr: ($("fAddr").value||"").trim(),
+    contact: ($("fContact").value||"").trim(),
+    lock: ($("fLock").value||"").trim(),
+    remove: ($("fRemove").value||"").trim(),
+    keep: ($("fKeep").value||"").trim(),
+    protect: ($("fProtect").value||"").trim(),
+    disposal: ($("fDisposal").value||"").trim()
   };
-
-  const description = buildDescription(fields);
-  const summary = `${TITLE_PREFIX}${(fields.addr || "Job").trim()} ${DEFAULT_FILTER}`.trim();
-  const location = fields.addr || undefined;
-
-  if(!time){
-    return { summary, location, description, start:{date:dateStr}, end:{date:addDays(dateStr,1)} };
+}
+function refreshPreview(){ $("preview").value = buildDescription(collectFields()); }
+function buildEventPayload(dateStr){
+  const fields=collectFields();
+  const desc=buildDescription(fields);
+  const addr=(fields.addr||"JOB").trim();
+  const summary = `${TITLE_PREFIX}${addr} ${DEFAULT_FILTER}`.trim();
+  const time=($("fTime").value||"").trim();
+  if(time){
+    const [hh,mm]=time.split(":");
+    const start=new Date(dateStr+"T00:00:00");
+    start.setHours(Number(hh||0), Number(mm||0), 0, 0);
+    const end=new Date(start);
+    end.setMinutes(end.getMinutes()+DEFAULT_DURATION_MIN);
+    return { summary, description:desc, start:{dateTime:start.toISOString()}, end:{dateTime:end.toISOString()} };
   }
-
-  const [y,m,d] = dateStr.split("-").map(Number);
-  const [hh, mm] = time.split(":").map(Number);
-  const start = new Date(y, m-1, d, hh, mm || 0, 0);
-  const end = new Date(start.getTime() + DEFAULT_DURATION_MIN*60000);
-
-  return { summary, location, description, start:{dateTime:start.toISOString()}, end:{dateTime:end.toISOString()} };
+  const endDay=new Date(dateStr+"T00:00:00"); endDay.setDate(endDay.getDate()+1);
+  return { summary, description:desc, start:{date:dateStr}, end:{date:isoDateLocal(endDay)} };
 }
-
-async function createEvent(dateStr){
-  const payload = buildEventPayloadForDate(dateStr);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
-  await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
+async function createEventOnDate(dateStr){
+  const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
+  const payload=buildEventPayload(dateStr);
+  await apiFetch(url,{ method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify(payload) });
 }
-async function updateEvent(eventId, dateStr){
-  const payload = buildEventPayloadForDate(dateStr);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
-  await apiFetch(url, { method:"PUT", body: JSON.stringify(payload) });
+async function updateEvent(evId, dateStr){
+  const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(evId)}`;
+  const payload=buildEventPayload(dateStr);
+  await apiFetch(url,{ method:"PATCH", headers:{ "Content-Type":"application/json" }, body:JSON.stringify(payload) });
 }
-async function deleteEvent(eventId){
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(eventId)}`;
-  await apiFetch(url, { method:"DELETE" });
+async function deleteEvent(evId){
+  const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(evId)}`;
+  await apiFetch(url,{ method:"DELETE" });
 }
-async function copyEventToDate(ev, targetDateStr){
-  const base = { summary: ev.summary, location: ev.location || undefined, description: ev.description || undefined };
+function shiftEvent(ev, targetDate){
+  const copy=JSON.parse(JSON.stringify(ev));
   if(ev.start?.date){
-    const payload = Object.assign({}, base, { start:{date:targetDateStr}, end:{date:addDays(targetDateStr,1)} });
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
-    await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
-    return;
+    copy.start={date:targetDate};
+    const d=new Date(targetDate+"T00:00:00"); d.setDate(d.getDate()+1);
+    copy.end={date:isoDateLocal(d)};
+  }else if(ev.start?.dateTime){
+    const s=new Date(ev.start.dateTime); const e=new Date(ev.end.dateTime);
+    const ns=new Date(targetDate+"T00:00:00"); ns.setHours(s.getHours(), s.getMinutes(),0,0);
+    const ne=new Date(targetDate+"T00:00:00"); ne.setHours(e.getHours(), e.getMinutes(),0,0);
+    if(ne<=ns){ const dur=Math.max(15,(e-s)/60000); ne.setTime(ns.getTime()+dur*60000); }
+    copy.start={dateTime:ns.toISOString()}; copy.end={dateTime:ne.toISOString()};
   }
-  const s = new Date(ev.start.dateTime);
-  const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
-  const [y,m,d] = targetDateStr.split("-").map(Number);
-  const start = new Date(y, m-1, d, s.getHours(), s.getMinutes(), 0);
-  const dur = e ? (e.getTime() - s.getTime()) : (DEFAULT_DURATION_MIN*60000);
-  const end = new Date(start.getTime() + dur);
-  const payload = Object.assign({}, base, { start:{dateTime:start.toISOString()}, end:{dateTime:end.toISOString()} });
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
-  await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
+  return copy;
 }
-
-// ---- WhatsApp ----
-async function copyText(txt){
-  try{ await navigator.clipboard.writeText(txt); toast("Copied"); return true; }
-  catch{ toast("Copy failed"); return false; }
+async function moveEventToDate(ev, targetDate){
+  const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
+  const shifted=shiftEvent(ev, targetDate);
+  await apiFetch(url,{ method:"PATCH", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ start:shifted.start, end:shifted.end }) });
 }
-function openWhatsApp(txt){
-  const url = "https://wa.me/?text=" + encodeURIComponent(txt);
-  // Try pop-out / new tab first (better UX: calendar stays open)
-  const w = window.open(url, "_blank", "noopener,noreferrer");
-  if(!w){
-    // Popup blocked (common on iPhone / PWA). Fall back to same-tab navigation.
-    location.href = url;
+async function copyEventToDate(ev, targetDate){
+  const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
+  const payload=shiftEvent(ev, targetDate);
+  delete payload.id;
+  if(payload.summary && !payload.summary.toLowerCase().includes(DEFAULT_FILTER.toLowerCase())){
+    payload.summary=(payload.summary+" "+DEFAULT_FILTER).trim();
   }
+  await apiFetch(url,{ method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify(payload) });
 }
-
-
-
-async function fetchEventsForDayOnly(dateStr){
-  const r = rfcRangeForDay(dateStr);
-  const params = new URLSearchParams({
-    timeMin: r.timeMin,
-    timeMax: r.timeMax,
-    singleEvents: "true",
-    orderBy: "startTime",
-    maxResults: "250"
+function buildWhatsAppTextForDate(dateStr, events){
+  const lines=[`KG DEMOLISH DAILY SCHEDULE: ${dateStr}`,""];
+  if(!events.length){ lines.push("(no job)"); return lines.join("\n"); }
+  for(const ev of events){
+    const f=parseDescription(ev.description||"");
+    const addr=f.addr||"__________";
+    const contact=f.contact||"__________";
+    const lock=f.lock||"__________";
+    const remove=f.remove||"__________";
+    lines.push(`Address: ${addr}`);
+    lines.push(`Remove: ${remove} | Contact: ${contact} | Lock No: ${lock}`);
+    lines.push("--------------------------------");
+  }
+  return lines.join("\n");
+}
+async function copyWhatsApp(){
+  const dateStr=$("datePick").value || isoDateLocal(new Date());
+  const events=lastEvents.filter(ev=>{
+    const day=ev.start.date || (ev.start.dateTime ? isoDateLocal(new Date(ev.start.dateTime)) : "");
+    return day===dateStr;
   });
-  if(DEFAULT_FILTER) params.set("q", DEFAULT_FILTER);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events?` + params.toString();
-  const data = await apiFetch(url);
-  return (data.items || []).filter(ev => ev.status !== "cancelled");
+  const txt=buildWhatsAppTextForDate(dateStr, events);
+  await navigator.clipboard.writeText(txt);
+  toast("Copied to clipboard");
 }
-
-async function buildDayWhatsAppText(dateStr){
-  const items = await fetchEventsForDayOnly(dateStr);
-  return buildWhatsAppForEvents(`KG DEMOLISH DAILY SCHEDULE: ${dateStr}`, items);
-}
-// ---- Auth ----
-function initAuth(){
-  if(!window.google || !google.accounts || !google.accounts.oauth2){
-    setStatus("Google library not loaded (check internet).");
-    return;
-  }
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: async (resp) => {
-      if(resp.error){ setStatus(resp.error); return; }
-      accessToken = resp.access_token;
-      toast("Authorized");
-      const me = await fetchWhoAmI();
-      const who = document.getElementById("whoami");
-      if(who) who.textContent = me?.email ? (`Signed in: ${me.email}`) : "Signed in";
-      await initCalendarsUI();
-      setStatus("Authorized. Loading…");
-      await load();
-    }
+function openWhatsAppPopout(){
+  const dateStr=$("datePick").value || isoDateLocal(new Date());
+  const events=lastEvents.filter(ev=>{
+    const day=ev.start.date || (ev.start.dateTime ? isoDateLocal(new Date(ev.start.dateTime)) : "");
+    return day===dateStr;
   });
-  setStatus("Ready. (BUILD v16 2025-12-26 08:23 UTC) Tap Authorize.");
+  const txt=buildWhatsAppTextForDate(dateStr, events);
+  const url="https://wa.me/?text="+encodeURIComponent(txt);
+  const w=window.open(url,"_blank","noopener,noreferrer");
+  if(!w) location.href=url;
 }
-
-function logout(){
-  accessToken = null;
-  lastEvents = [];
-  $("events").innerHTML = "";
-  $("preview").textContent = "";
-  const who = document.getElementById("whoami");
-  if(who) who.textContent = "Not signed in";
-  setStatus("Logged out.");
-  toast("Logged out");
+function goToday(){ $("datePick").value = isoDateLocal(new Date()); load(); }
+function shiftDays(delta){
+  const d=new Date(($("datePick").value || isoDateLocal(new Date()))+"T00:00:00");
+  d.setDate(d.getDate()+delta);
+  $("datePick").value=isoDateLocal(d);
+  load();
 }
-
-// ---- UI ----
-
-function wireAuthButtons(){
-  const a = document.getElementById("authTopBtn") || document.getElementById("authBtn");
-  const b = document.getElementById("logoutTopBtn") || document.getElementById("logoutBtn");
-  if(a && !a.__wired){
-    a.__wired = true;
-    a.addEventListener("click", ()=>{ try{ (typeof authBtn!=="undefined" && authBtn.onclick) ? authBtn.onclick() : null; }catch{} });
+function wire(){
+  $("datePick").value=isoDateLocal(new Date());
+  $("authBtn").addEventListener("click", authorize);
+  $("logoutBtn").addEventListener("click", logout);
+  $("todayBtn").addEventListener("click", goToday);
+  $("prevBtn").addEventListener("click", ()=>shiftDays($("viewSel").value==="month"?-30:-1));
+  $("nextBtn").addEventListener("click", ()=>shiftDays($("viewSel").value==="month"?30:1));
+  $("loadBtn").addEventListener("click", load);
+  $("newBtn").addEventListener("click", ()=>openModal("new"));
+  $("copyWaBtn").addEventListener("click", copyWhatsApp);
+  $("openWaBtn").addEventListener("click", openWhatsAppPopout);
+  $("viewSel").addEventListener("change", load);
+  $("datePick").addEventListener("change", load);
+  $("closeModalBtn").addEventListener("click", closeModal);
+  $("modalBk").addEventListener("click",(e)=>{ if(e.target.id==="modalBk") closeModal(); });
+  for(const id of ["fDate","fTime","fAddr","fContact","fLock","fRemove","fKeep","fProtect","fDisposal"]){
+    $(id).addEventListener("input", refreshPreview);
+    $(id).addEventListener("change", refreshPreview);
   }
-  if(b && !b.__wired){
-    b.__wired = true;
-    b.addEventListener("click", ()=>{ try{ (typeof logoutBtn!=="undefined" && logoutBtn.onclick) ? logoutBtn.onclick() : null; }catch{} });
-  }
-}
-
-window.addEventListener("load", ()=>{
-  wireAuthButtons();
-  const sel = document.getElementById("calSel");
-  if(sel){ sel.innerHTML = `<option value="${ACTIVE_CALENDAR_ID}">Calendar: ${ACTIVE_CALENDAR_ID}</option>`; }
-
-  $("datePick").value = isoDateLocal(new Date());
-  initAuth();
-  if("serviceWorker" in navigator){
-    navigator.serviceWorker.register("./sw.js").catch(()=>{});
-  }
-});
-
-$("installTipBtn").onclick = ()=>{
-  alert("Install on iPhone: open this link in Safari → Share → Add to Home Screen.\n\nSync: stored in Google Calendar, so iPhone + desktop match.\n\nIf login fails in Home Screen app, authorize once in Safari first.");
-};
-
-$("todayBtn").onclick = ()=>{ $("datePick").value = isoDateLocal(new Date()); };
-$("prevBtn").onclick = ()=>{ $("datePick").value = addDays($("datePick").value, -1); };
-$("nextBtn").onclick = ()=>{ $("datePick").value = addDays($("datePick").value, +1); };
-
-$("loadBtn").onclick = ()=>{ if(!accessToken){ toast("Tap Authorize first"); return; } load(); };
-
-
-$("copyWaBtn").onclick = async ()=>{
-  try{
-    if(!accessToken){ toast("Tap Authorize first"); return; }
-    const dateStr = $("datePick").value;
-    setStatus("Preparing WhatsApp…");
-    const txt = await buildDayWhatsAppText(dateStr);
-    $("preview").textContent = txt;
-    await copyText(txt);
-    setStatus("Copied for " + dateStr);
-  }catch(e){ setStatus(e.message); }
-};
-
-$("openWaBtn").onclick = async ()=>{
-  try{
-    if(!accessToken){ toast("Tap Authorize first"); return; }
-    const dateStr = $("datePick").value;
-    setStatus("Preparing WhatsApp…");
-    const txt = await buildDayWhatsAppText(dateStr);
-    $("preview").textContent = txt;
-    setStatus("Opening WhatsApp…");
-    openWhatsApp(txt);
-  }catch(e){ setStatus(e.message); }
-};
-$("newBtn").onclick = ()=>{ if(!accessToken){ toast("Tap Authorize first"); return; } openModal("new"); };
-$("closeModalBtn").onclick = closeModal;
-$("modalBackdrop").addEventListener("click", (e)=>{ if(e.target === $("modalBackdrop")) closeModal(); });
-
-$("clearBtn").onclick = ()=>{
-  $("fTime").value=""; $("fAddr").value=""; if($("fContact")) $("fContact").value=""; if($("fLock")) $("fLock").value=""; $("fRemove").value=""; $("fKeep").value=""; $("fProtect").value=""; $("fDisposal").value="";
-  toast("Cleared");
-};
-
-$("saveBtn").onclick = async ()=>{
-  try{
-    if(!accessToken) throw new Error("Not authorized. Tap Authorize.");
-    setStatus("Saving…");
-    const dateStr = currentDate();
-    $("datePick").value = dateStr;
-$("datePick").value = dateStr;
-    const eventId = $("modalBackdrop").getAttribute("data-event-id");
-    if(eventId) { await updateEvent(eventId, dateStr); toast("Updated"); }
-    else { await createEvent(dateStr); toast("Saved"); }
-
-    const target = ($("fCopyDate").value || "").trim();
-    if(target){
-      // copy current form as new event on target
-      const payload = buildEventPayloadForDate(target);
-      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
-      await apiFetch(url, { method:"POST", body: JSON.stringify(payload) });
-      toast("Saved + Copied");
-    }
-    closeModal();
-    await load();
-  }catch(e){ setStatus(e.message); }
-};
-
-$("delBtn").onclick = async ()=>{
-  try{
-    const eventId = $("modalBackdrop").getAttribute("data-event-id");
-    if(!eventId) return;
+  $("clearBtn").addEventListener("click", ()=>{
+    $("fTime").value=""; $("fAddr").value=""; $("fContact").value=""; $("fLock").value="";
+    $("fRemove").value=""; $("fKeep").value=""; $("fProtect").value=""; $("fDisposal").value="";
+    refreshPreview();
+  });
+  $("saveBtn").addEventListener("click", async ()=>{
+    try{
+      if(!accessToken) return alert("Please Authorize first.");
+      const dateStr=$("fDate").value || $("datePick").value || isoDateLocal(new Date());
+      if(modalMode==="new"){ setStatus("Saving…"); await createEventOnDate(dateStr); toast("Saved"); }
+      else { setStatus("Updating…"); await updateEvent(editingEvent.id, dateStr); toast("Updated"); }
+      closeModal(); await load();
+    }catch(e){ dbg(e.message||e); alert(e.message||String(e)); }
+  });
+  $("deleteBtn").addEventListener("click", async ()=>{
+    if(!editingEvent) return;
     if(!confirm("Delete this job?")) return;
-    setStatus("Deleting…");
-    await deleteEvent(eventId);
-    toast("Deleted");
-    closeModal();
-    await load();
-  }catch(e){ setStatus(e.message); }
-};
-
-$("events").addEventListener("click", (e)=>{
-  const editBtn = e.target.closest("button[data-edit]");
-  const copyBtn = e.target.closest("button[data-copy]");
-
-  if(copyBtn){
-    const id = copyBtn.getAttribute("data-copy");
-    const ev = lastEvents.find(x=> x.id === id);
-    if(!ev) return;
-    const target = prompt("Copy to date (YYYY-MM-DD):", $("datePick").value);
+    try{ setStatus("Deleting…"); await deleteEvent(editingEvent.id); toast("Deleted"); closeModal(); await load(); }
+    catch(e){ dbg(e.message||e); alert(e.message||String(e)); }
+  });
+  $("copyToBtn").addEventListener("click", async ()=>{
+    if(!editingEvent) return;
+    const target=prompt("Copy this job to date (YYYY-MM-DD):", $("datePick").value);
     if(!target) return;
-    setStatus("Copying…");
-    copyEventToDate(ev, target.trim())
-      .then(()=>{ toast("Copied"); return load(); })
-      .catch(err=> setStatus(err.message));
-    return;
-  }
-
-  if(editBtn){
-    const id = editBtn.getAttribute("data-edit");
-    const ev = lastEvents.find(x=> x.id === id);
-    if(ev) openModal("edit", ev);
-  }
-});
-
-// Auth buttons (top + bottom)
-const authTopBtn = document.getElementById("authTopBtn");
-const logoutTopBtn = document.getElementById("logoutTopBtn");
-const authBtn = document.getElementById("authTopBtn") || document.getElementById("authBtn");
-const logoutBtn = document.getElementById("logoutTopBtn") || document.getElementById("logoutBtn");
-
-function doAuth(){
-  if(!tokenClient){ toast("Auth not ready"); return; }
-  tokenClient.requestAccessToken({ prompt:"" });
+    try{ setStatus("Copying…"); await copyEventToDate(editingEvent, target.trim()); toast("Copied"); await load(); }
+    catch(e){ dbg(e.message||e); alert(e.message||String(e)); }
+  });
+  refreshPreview();
+  if("serviceWorker" in navigator){ navigator.serviceWorker.register("./sw.js").catch(()=>{}); }
 }
-if(authTopBtn) authTopBtn.onclick = doAuth;
-if(authBtn) authBtn.onclick = doAuth;
-if(logoutTopBtn) logoutTopBtn.onclick = logout;
-if(logoutBtn) logoutBtn.onclick = logout;
-
+window.addEventListener("load", ()=>{
+  wire();
+  setStatus("Ready. Click Authorize to connect Google Calendar.");
+});
 </script>
-
 </body>
 </html>
