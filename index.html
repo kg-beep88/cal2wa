@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Calendar → WhatsApp</title>
+  <meta name="theme-color" content="#111827" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+
+  <style>
+    :root { --bg:#0b1220; --card:#111827; --line:#1f2937; --muted:#9ca3af; --txt:#e5e7eb; --btn:#2563eb; }
+    body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+    .wrap{max-width:960px;margin:0 auto;padding:14px 14px 96px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .title{font-size:18px;font-weight:900}
+    .muted{color:var(--muted);font-size:12px;line-height:1.35}
+    input,select{background:#0f172a;border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:10px;font-size:15px}
+    button{border:0;border-radius:12px;padding:10px 12px;font-size:15px;font-weight:800;background:var(--btn);color:#fff}
+    button.secondary{background:#334155}
+    button.danger{background:#ef4444}
+    pre{white-space:pre-wrap;background:#0f172a;border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
+    .taskTitle{font-weight:900}
+    .sep{border-top:1px dashed #334155;margin:10px 0}
+    .fixed{position:fixed;left:0;right:0;bottom:0;background:rgba(11,18,32,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:12px 14px}
+    .fixedInner{max-width:960px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    a{color:#93c5fd}
+    .badge{display:inline-block;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:#0f172a;color:var(--muted);font-size:12px}
+  </style>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="./config.js"></script>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div class="title">Calendar → WhatsApp</div>
+          <div class="muted">Read Google Calendar automatically, then send all tasks as one WhatsApp message.</div>
+          <div class="muted"><span class="badge">Tip</span> Put <b>#JOB</b> in Title or Notes to filter only work tasks.</div>
+        </div>
+        <div class="row">
+          <select id="lang" aria-label="Language">
+            <option value="bi" selected>EN + 中文</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <input id="date" type="date" />
+        <input id="filter" placeholder="Filter keyword (e.g. #JOB)" style="min-width:220px"/>
+        <button id="authBtn">Authorize Google</button>
+        <button class="secondary" id="loadBtn">Load</button>
+      </div>
+
+      <div class="muted" id="status" style="margin-top:8px">Not authorized yet.</div>
+      <div class="sep"></div>
+      <div class="muted">
+        <b>Calendar event format</b> (easy for workers):
+        <div class="sep"></div>
+        <div><b>Title / 标题:</b> Site – Work – Area / 地点-工作-区域</div>
+        <div><b>Location / 地址:</b> Full address + meet point</div>
+        <div><b>Notes / 备注:</b> Wall remove / workers / vehicles / PTW, etc.</div>
+      </div>
+    </div>
+
+    <div id="list"></div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div class="taskTitle">Preview message / 预览信息</div>
+          <div class="muted">WhatsApp group: Copy → open WhatsApp → Paste → Send (most reliable).</div>
+        </div>
+        <div class="row">
+          <button class="secondary" id="copyBtn">Copy / 复制</button>
+          <button id="waBtn">Open WhatsApp / 打开</button>
+        </div>
+      </div>
+      <pre id="preview"></pre>
+    </div>
+
+    <div class="card">
+      <div class="taskTitle">Notes Template / 备注模板</div>
+      <div class="muted">Copy this into your Google Calendar event Notes.</div>
+      <pre id="tpl"></pre>
+      <div class="row">
+        <button class="secondary" id="copyTplBtn">Copy Template</button>
+      </div>
+    </div>
+
+    <div class="muted">
+      Install on iPhone: open in Safari → Share → <b>Add to Home Screen</b>.
+      <br/>If Google login popup fails inside Home Screen app, open the same link in Safari and authorize first.
+    </div>
+  </div>
+
+  <div class="fixed">
+    <div class="fixedInner">
+      <div class="muted" id="footer">Ready.</div>
+      <div class="row">
+        <button class="secondary" id="todayBtn">Today / 今天</button>
+        <button id="sendBtn">Send (copy+open) / 发送</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // --------- Config ----------
+  const CFG = window.APP_CONFIG || {};
+  const CLIENT_ID = CFG.CLIENT_ID || "PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com";
+  const CALENDAR_ID = CFG.CALENDAR_ID || "primary";
+  const DEFAULT_FILTER = (CFG.DEFAULT_FILTER ?? "#JOB").trim();
+
+  // Minimum read scope for events.list:
+  const SCOPES = "https://www.googleapis.com/auth/calendar.events.readonly";
+
+  // --------- State ----------
+  let tokenClient = null;
+  let accessToken = null;
+  let lastEvents = [];
+
+  const $ = (id) => document.getElementById(id);
+
+  function isoDateLocal(d){
+    const off = d.getTimezoneOffset();
+    const d2 = new Date(d.getTime() - off*60000);
+    return d2.toISOString().slice(0,10);
+  }
+
+  function setStatus(msg){
+    $("status").textContent = msg;
+    $("footer").textContent = msg;
+  }
+
+  function notesTemplate(){
+    return `SCOPE 工作:
+Remove 拆: __________
+Keep 保: __________
+Protect 保护: _______
+
+Workers 工人 & Vehicle 车辆:
+Van1 车1 (Plate 车牌 ____): _______
+Van2 车2 (Plate 车牌 ____): _______
+
+PTW 许可: Yes/No
+Disposal 清运: Yes/No
+Contact 联系: _______`;
+  }
+
+  function headerFor(dateStr){
+    const lang = $("lang").value;
+    if(lang==="en") return `DAILY PLAN: ${dateStr}`;
+    if(lang==="zh") return `每日安排: ${dateStr}`;
+    return `DAILY PLAN / 每日安排: ${dateStr}`;
+  }
+
+  function fmtTime(ev){
+    if(ev.start?.dateTime){
+      const dt = new Date(ev.start.dateTime);
+      return dt.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+    }
+    return "ALL DAY";
+  }
+
+  function buildMessage(dateStr, events){
+    const lines = [headerFor(dateStr), ""];
+    if(!events.length){
+      const lang = $("lang").value;
+      lines.push(lang==="zh" ? "（当天没有安排）" : lang==="en" ? "(No tasks.)" : "(No tasks / 当天没有安排)");
+      return lines.join("\n");
+    }
+    for(const ev of events){
+      const t = fmtTime(ev);
+      const title = ev.summary || "(No title)";
+      lines.push(`• 【${t}】 ${title}`);
+      if(ev.location) lines.push(`📍 ${ev.location}`);
+      if(ev.description) lines.push(`📝 ${ev.description.trim()}`);
+      lines.push("--------------------------------");
+    }
+    return lines.join("\n");
+  }
+
+  function setPreview(){
+    const dateStr = $("date").value;
+    $("preview").textContent = buildMessage(dateStr, lastEvents);
+  }
+
+  function rfc3339Range(dateStr){
+    const [y,m,d] = dateStr.split("-").map(Number);
+    const start = new Date(y, m-1, d, 0,0,0);
+    const end = new Date(y, m-1, d+1, 0,0,0);
+
+    const pad = (n)=> String(n).padStart(2,"0");
+    const toRFC = (dt)=>{
+      const tz = -dt.getTimezoneOffset();
+      const sign = tz>=0?"+":"-";
+      const hh = pad(Math.floor(Math.abs(tz)/60));
+      const mm = pad(Math.abs(tz)%60);
+      return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}${sign}${hh}:${mm}`;
+    };
+    return { timeMin: toRFC(start), timeMax: toRFC(end) };
+  }
+
+  async function fetchEvents(dateStr){
+    if(!accessToken) throw new Error("Not authorized yet. Tap 'Authorize Google' first.");
+    const {timeMin, timeMax} = rfc3339Range(dateStr);
+    const q = ($("filter").value || "").trim();
+
+    const params = new URLSearchParams({
+      timeMin, timeMax,
+      singleEvents: "true",
+      orderBy: "startTime",
+      maxResults: "250"
+    });
+    if(q) params.set("q", q);
+
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?` + params.toString();
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if(!res.ok){
+      const t = await res.text().catch(()=> "");
+      throw new Error(`Calendar API error ${res.status}. ${t.slice(0,140)}`);
+    }
+    const data = await res.json();
+    return (data.items || []).filter(ev => ev.status !== "cancelled");
+  }
+
+  function renderList(events){
+    lastEvents = events;
+    const box = $("list");
+    box.innerHTML = "";
+    if(!events.length){
+      box.innerHTML = `<div class="card"><div class="muted">No events found. Try changing date or removing filter.</div></div>`;
+      setPreview();
+      return;
+    }
+
+    for(const ev of events){
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <div class="taskTitle">${escapeHtml(ev.summary || "(No title)")}</div>
+        <div class="muted" style="margin-top:6px">
+          ⏰ ${escapeHtml(fmtTime(ev))}<br/>
+          📍 ${escapeHtml(ev.location || "-")}<br/>
+          📝 ${escapeHtml((ev.description || "-").slice(0,320))}
+        </div>
+      `;
+      box.appendChild(div);
+    }
+    setPreview();
+  }
+
+  function escapeHtml(s){
+    return (s||"").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+
+  async function load(){
+    const dateStr = $("date").value;
+    setStatus("Loading…");
+    try{
+      const events = await fetchEvents(dateStr);
+      renderList(events);
+      setStatus(`Loaded ${events.length} event(s).`);
+    }catch(e){
+      setStatus(e.message);
+      renderList([]);
+    }
+  }
+
+  async function copyText(txt){
+    try{
+      await navigator.clipboard.writeText(txt);
+      setStatus("Copied. Now paste into WhatsApp group.");
+      return true;
+    }catch{
+      setStatus("Copy failed. Please select text manually.");
+      return false;
+    }
+  }
+
+  function openWhatsApp(prefillText){
+    // Opens WhatsApp with prefilled message. For groups, user still picks group & presses send.
+    location.href = "https://wa.me/?text=" + encodeURIComponent(prefillText);
+  }
+
+  // --------- Init ----------
+  $("tpl").textContent = notesTemplate();
+  $("date").value = isoDateLocal(new Date());
+  $("filter").value = DEFAULT_FILTER;
+
+  window.addEventListener("load", () => {
+    if(!window.google || !google.accounts || !google.accounts.oauth2){
+      setStatus("Google library not loaded (check internet).");
+      return;
+    }
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (resp) => {
+        if(resp.error){ setStatus(resp.error); return; }
+        accessToken = resp.access_token;
+        setStatus("Authorized. Tap Load.");
+      }
+    });
+    setStatus("Ready. Tap Authorize Google.");
+  });
+
+  $("authBtn").onclick = () => {
+    if(!tokenClient) return;
+    // Must be triggered by user click
+    tokenClient.requestAccessToken({ prompt: "" });
+  };
+
+  $("loadBtn").onclick = load;
+  $("todayBtn").onclick = () => { $("date").value = isoDateLocal(new Date()); load(); };
+
+  $("copyBtn").onclick = () => copyText($("preview").textContent);
+  $("waBtn").onclick = () => openWhatsApp($("preview").textContent);
+
+  $("copyTplBtn").onclick = () => copyText(notesTemplate());
+
+  $("sendBtn").onclick = async () => {
+    // Load first then copy+open
+    await load();
+    const msg = $("preview").textContent;
+    await copyText(msg);
+    openWhatsApp(msg);
+  };
+
+  $("lang").onchange = setPreview;
+
+  // Register service worker (offline shell)
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  }
+</script>
+</body>
+</html>
