@@ -473,7 +473,7 @@
         <label>WhatsApp</label>
         <div class="row">
           <button class="secondary" id="copyWaBtn">Copy</button>
-          <button id="openWaBtn">Open</button>
+          <button id="openWaBtn">Pop-out</button>
         </div>
       </div>
     </div>
@@ -1221,7 +1221,13 @@ async function copyText(txt){
   catch{ toast("Copy failed"); return false; }
 }
 function openWhatsApp(txt){
-  location.href = "https://wa.me/?text=" + encodeURIComponent(txt);
+  const url = "https://wa.me/?text=" + encodeURIComponent(txt);
+  // Try pop-out / new tab first (better UX: calendar stays open)
+  const w = window.open(url, "_blank", "noopener,noreferrer");
+  if(!w){
+    // Popup blocked (common on iPhone / PWA). Fall back to same-tab navigation.
+    location.href = url;
+  }
 }
 
 
