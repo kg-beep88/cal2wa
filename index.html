@@ -281,6 +281,114 @@
       outline-offset:3px;
     }
 
+  
+    /* ===== Google Calendar-like canvas (v5) ===== */
+    body{background:#ffffff}
+    .topbar{background:#ffffff;border-bottom:1px solid #e6e9ef}
+    .card{max-width:1200px;border-radius:18px;box-shadow:none}
+    .divider{border-top:1px solid #eef1f6}
+    .dowHeader{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      border-left:1px solid #e6e9ef;
+      border-right:1px solid #e6e9ef;
+      border-top:1px solid #e6e9ef;
+      border-radius:16px 16px 0 0;
+      overflow:hidden;
+      max-width:1200px;
+      margin:0 auto;
+    }
+    .dowHeader > div{
+      padding:10px 12px;
+      font-size:12px;
+      font-weight:800;
+      color:#6b7280;
+      background:#ffffff;
+      border-right:1px solid #e6e9ef;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+    .dowHeader > div:last-child{border-right:0}
+    .monthGrid{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      border-left:1px solid #e6e9ef;
+      border-right:1px solid #e6e9ef;
+      border-bottom:1px solid #e6e9ef;
+      border-radius:0 0 16px 16px;
+      overflow:hidden;
+      max-width:1200px;
+      margin:0 auto;
+    }
+    .dayCell{
+      min-height:140px;
+      padding:10px 10px 8px;
+      border-right:1px solid #e6e9ef;
+      border-top:1px solid #e6e9ef;
+      background:#ffffff;
+      border-radius:0;
+      box-shadow:none;
+      transition: background .12s ease;
+    }
+    .dayCell:nth-child(7n){border-right:0}
+    .dayCell:hover{background:#fafbff;transform:none}
+    .dayTop{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px}
+    .dayNum{
+      font-size:12px;
+      font-weight:900;
+      color:#111827;
+      width:26px;height:26px;border-radius:999px;
+      display:grid;place-items:center;
+    }
+    .dayNum.today{background:#1a73e8;color:#fff}
+    .dayMeta{
+      font-size:12px;
+      font-weight:800;
+      color:#6b7280;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .eventBar{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:4px 8px;
+      border-radius:10px;
+      font-size:12px;
+      font-weight:700;
+      color:#0f172a;
+      background:#e8f0fe;
+      margin-top:6px;
+      cursor:grab;
+      user-select:none;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      border:1px solid #d7e3ff;
+    }
+    .eventBar:active{cursor:grabbing}
+    .eventTimeBadge{
+      font-size:11px;
+      font-weight:900;
+      color:#1a73e8;
+      flex:0 0 auto;
+    }
+    .eventText{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .moreLink{
+      margin-top:6px;
+      font-size:12px;
+      font-weight:900;
+      color:#1a73e8;
+      cursor:pointer;
+      user-select:none;
+    }
+    .dropHint{outline:2px dashed rgba(26,115,232,.45); outline-offset:-6px}
+
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="./config.js"></script>
@@ -381,7 +489,7 @@
       </div>
     </div>
 
-    <div id="dowHeader" class="dowHeader" style="display:none;"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>
+    <div id="dowHeader" class="dowHeader" style="display:none;"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
       <div id="monthGrid" style="display:none;"></div>
 
     <div id="events"></div>
@@ -700,7 +808,6 @@ async function fetchEventsMonth(dateStr){
 function chipLabel(ev){
   const desc = (ev.description || "").trim();
   const addr = parseDescription(desc).addr || ev.location || "";
-  // short label (like Google Calendar)
   return addr || "(No address)";
 }
 
@@ -756,103 +863,99 @@ function renderMonth(items, range){
   const mg = $("monthGrid");
   const dow = $("dowHeader");
   dow.style.display = "grid";
-  mg.style.display = "block";
+  mg.style.display = "grid";
   mg.className = "monthGrid";
   mg.innerHTML = "";
 
   lastEvents = items;
   const grouped = groupByDate(items);
 
-  // Month label
   const monthName = range.first.toLocaleString(undefined, { month: "long", year: "numeric" });
-  $("monthLabel").textContent = monthName;
+  const ml = document.getElementById("monthLabel");
+  if(ml) ml.textContent = monthName;
 
-  // Month grid starts on Monday
+  // Week starts Sunday
   const first = range.first;
-  const firstDow = first.getDay(); // 0 Sun .. 6 Sat
-  const offset = (firstDow === 0) ? 6 : (firstDow - 1); // days back to Monday
+  const firstDow = first.getDay(); // 0 Sun..6 Sat
   const gridStart = new Date(first);
-  gridStart.setDate(first.getDate() - offset);
+  gridStart.setDate(first.getDate() - firstDow);
 
   const today = isoDateLocal(new Date());
 
-  // 6 rows x 7 days
   for(let i=0;i<42;i++){
     const d = new Date(gridStart);
     d.setDate(gridStart.getDate() + i);
     const dateStr = isoDateLocal(d);
+    const inMonth = (d.getMonth() === first.getMonth());
 
     const cell = document.createElement("div");
     cell.className = "dayCell";
     cell.setAttribute("data-day", dateStr);
-
-    const inMonth = (d.getMonth() === first.getMonth());
+    if(!inMonth) cell.style.opacity = ".55";
 
     const top = document.createElement("div");
     top.className = "dayTop";
+
     const num = document.createElement("div");
-    num.className = "dayNum" + (dateStr===today ? " today" : "") + (!inMonth ? " outMonth" : "");
+    num.className = "dayNum" + (dateStr===today ? " today" : "");
     num.textContent = String(d.getDate());
     top.appendChild(num);
 
-    const label = document.createElement("div");
-    label.className = "muted";
-    label.style.fontWeight = "900";
-    label.textContent = dateStr;
-    top.appendChild(label);
+    const meta = document.createElement("div");
+    meta.className = "dayMeta";
+    if(d.getDate() === 1){
+      meta.textContent = d.toLocaleString(undefined, { month: "short" }) + " " + d.getDate();
+    }else{
+      meta.textContent = "";
+    }
+    top.appendChild(meta);
 
     cell.appendChild(top);
 
     const dayEvents = grouped[dateStr] || [];
     const MAX_SHOW = 3;
 
-    function addPill(ev){
-      const pill = document.createElement("div");
-      pill.className = "pillEvent";
-      pill.draggable = true;
-      pill.setAttribute("data-id", ev.id);
+    function addBar(ev){
+      const bar = document.createElement("div");
+      bar.className = "eventBar";
+      bar.draggable = true;
+      bar.setAttribute("data-id", ev.id);
 
-      const dot = document.createElement("div");
-      dot.className = "pillDot";
-      pill.appendChild(dot);
+      const tb = document.createElement("div");
+      tb.className = "eventTimeBadge";
+      tb.textContent = ev.start?.dateTime ? fmtTime(ev) : "ALL";
+      bar.appendChild(tb);
 
-      const time = document.createElement("div");
-      time.className = "pillTime";
-      time.textContent = ev.start?.dateTime ? fmtTime(ev) : "ALL";
-      pill.appendChild(time);
+      const tx = document.createElement("div");
+      tx.className = "eventText";
+      tx.textContent = chipLabel(ev);
+      bar.appendChild(tx);
 
-      const text = document.createElement("div");
-      text.className = "pillText";
-      text.textContent = chipLabel(ev);
-      pill.appendChild(text);
-
-      pill.addEventListener("dragstart", (e)=>{
+      bar.addEventListener("dragstart", (e)=>{
         e.dataTransfer.setData("text/plain", ev.id);
-        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.effectAllowed = "copyMove";
       });
-      pill.addEventListener("click", ()=>{
+
+      bar.addEventListener("click", ()=>{
         openModal("edit", ev);
       });
 
-      cell.appendChild(pill);
+      cell.appendChild(bar);
     }
 
-    const shown = dayEvents.slice(0, MAX_SHOW);
-    shown.forEach(addPill);
+    dayEvents.slice(0, MAX_SHOW).forEach(addBar);
 
     if(dayEvents.length > MAX_SHOW){
       const more = document.createElement("div");
       more.className = "moreLink";
       more.textContent = `+${dayEvents.length - MAX_SHOW} more`;
       more.addEventListener("click", ()=>{
-        // expand inline
         more.remove();
-        dayEvents.slice(MAX_SHOW).forEach(addPill);
+        dayEvents.slice(MAX_SHOW).forEach(addBar);
       });
       cell.appendChild(more);
     }
 
-    // Drag/drop target
     cell.addEventListener("dragover", (e)=>{ e.preventDefault(); cell.classList.add("dropHint"); });
     cell.addEventListener("dragleave", ()=> cell.classList.remove("dropHint"));
     cell.addEventListener("drop", async (e)=>{
@@ -862,8 +965,14 @@ function renderMonth(items, range){
       const ev = lastEvents.find(x=> x.id === id);
       if(!ev) return;
 
-      const action = prompt("Type M = Move, C = Copy (default M):", "M");
-      const act = (action || "M").trim().toUpperCase();
+      const wantCopy = !!e.shiftKey;
+      const isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+      let act = wantCopy ? "C" : "M";
+      if(isTouch){
+        const action = prompt("Type M = Move, C = Copy (default M):", "M");
+        act = (action || "M").trim().toUpperCase();
+      }
+
       try{
         setStatus(act === "C" ? "Copying…" : "Moving…");
         if(act === "C"){
@@ -879,16 +988,8 @@ function renderMonth(items, range){
       }
     });
 
-    // Single click empty day: set date picker
-    cell.addEventListener("click", ()=>{
-      $("datePick").value = dateStr;
-    });
-
-    // Double click day: add new job
-    cell.addEventListener("dblclick", ()=>{
-      $("datePick").value = dateStr;
-      openModal("new");
-    });
+    cell.addEventListener("click", ()=>{ $("datePick").value = dateStr; });
+    cell.addEventListener("dblclick", ()=>{ $("datePick").value = dateStr; openModal("new"); });
 
     mg.appendChild(cell);
   }
