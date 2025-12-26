@@ -389,6 +389,90 @@
     }
     .dropHint{outline:2px dashed rgba(26,115,232,.45); outline-offset:-6px}
 
+  
+    /* ===== iPhone / small screen polish (v9) ===== */
+    html, body { overflow-x: hidden; }
+    .monthGrid, .dowHeader { width: 100%; max-width: 1200px; }
+    .dayCell { min-width: 0; }
+
+    @media (max-width: 520px){
+      body{ background:#ffffff; }
+      .wrap{ padding: 10px; }
+      .topbar{ padding: 12px 10px; }
+      .brand{ gap:10px; }
+      .brand h1{ font-size: 18px; line-height:1.1; }
+      .brand .sub{ font-size: 12px; line-height:1.2; }
+
+      .card{ max-width: 100%; border-radius: 16px; padding: 12px; }
+      .gcalToolbar{ gap:8px; }
+      .gcalTitle{ font-size: 16px; padding: 6px 10px; }
+      button, .secondary { padding: 10px 12px; border-radius: 12px; }
+      button.small{ padding: 8px 10px; }
+      .plus{ width: 44px; height: 44px; border-radius: 14px; font-size: 22px; }
+
+      /* controls: stack into 2 rows */
+      .gcalControls{
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .ctrl label{ margin: 8px 0 4px; font-size: 11px; }
+      .ctrl input[type="date"], .ctrl select{
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+      }
+      #whoami{ font-size: 11px; }
+
+      /* weekday header + grid (no rounded pills, like Google Calendar) */
+      .dowHeader{
+        max-width: 100%;
+        border-radius: 14px 14px 0 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #fff;
+      }
+      .dowHeader > div{
+        padding: 8px 8px;
+        font-size: 11px;
+        letter-spacing: .04em;
+      }
+      .monthGrid{
+        max-width: 100%;
+        border-radius: 0 0 14px 14px;
+      }
+      .dayCell{
+        min-height: 92px;
+        padding: 8px 6px 6px;
+      }
+      .dayTop{ margin: 0 0 6px; }
+      .dayMeta{ display:none; }
+      .dayNum{
+        width: 24px; height: 24px; font-size: 12px;
+      }
+
+      /* event bars compact */
+      .eventBar{
+        padding: 4px 6px;
+        border-radius: 9px;
+        font-size: 11px;
+      }
+      .eventTimeBadge{
+        display:none; /* keep cleaner on iPhone */
+      }
+
+      .moreLink{ font-size: 11px; }
+
+      /* Reduce footer hint */
+      .fixedBottom{ padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+      .fixedInner{ font-size: 12px; }
+    }
+
+    /* iOS safe area for bottom bars */
+    .fixedBottom{
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    }
+
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="./config.js"></script>
