@@ -689,6 +689,14 @@ const CLIENT_ID = CFG.CLIENT_ID || "PASTE_YOUR_CLIENT_ID.apps.googleusercontent.
 function dbg(t){
   const b = document.getElementById("debugBox");
   if(b){ b.style.display="block"; b.textContent = t; }
+
+window.addEventListener("error", (e)=>{
+  try{
+    const msg = (e?.message || "Unknown JS error") + (e?.filename ? (" @ " + e.filename + ":" + e.lineno) : "");
+    if(typeof dbg === "function") dbg(msg);
+    alert(msg);
+  }catch{}
+});
   try{ console.log("[KG]", t); }catch{}
 }
 
@@ -915,8 +923,7 @@ function startDateLabel(ev){
 
 function parseDescription(desc){
   const out = { addr:"", contact:"", lock:"", remove:"", keep:"", protect:"", disposal:"" };
-  const lines = (desc || "").split(/
-?
+  const lines = (desc || "").split(/?
 /);
   for(const raw of lines){
     const line = (raw || "").trim();
@@ -924,7 +931,9 @@ function parseDescription(desc){
     const lower = line.toLowerCase();
     if(lower.startsWith("address:")) out.addr = line.slice(8).trim();
     else if(lower.startsWith("contact:")) out.contact = line.slice(8).trim();
-    else if(lower.startsWith("lock no:") || lower.startsWith("lockno:") || lower.startsWith("lock:")) out.lock = line.split(":").slice(1).join(":").trim();
+    else if(lower.startsWith("lock no:") || lower.startsWith("lockno:") || lower.startsWith("lock:")) {
+      out.lock = line.split(":").slice(1).join(":").trim();
+    }
     else if(lower.startsWith("remove")) out.remove = line.split(":").slice(1).join(":").trim();
     else if(lower.startsWith("keep")) out.keep = line.split(":").slice(1).join(":").trim();
     else if(lower.startsWith("protect")) out.protect = line.split(":").slice(1).join(":").trim();
