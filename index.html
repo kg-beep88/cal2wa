@@ -821,13 +821,15 @@ function startDateLabel(ev){
 
 function parseDescription(desc){
   const out = { addr:"", contact:"", lock:"", remove:"", keep:"", protect:"", disposal:"" };
-  const lines = (desc || "").split(/\r?\n/).map(x=>x.trim());
-  for(const line of lines){
+  const lines = (desc || "").split(/?
+/);
+  for(const raw of lines){
+    const line = (raw || "").trim();
+    if(!line) continue;
     const lower = line.toLowerCase();
     if(lower.startsWith("address:")) out.addr = line.slice(8).trim();
     else if(lower.startsWith("contact:")) out.contact = line.slice(8).trim();
-    else if(lower.startsWith("lock") || lower.startsWith("lock no") || lower.startsWith("lockno")) out.lock = line.split(":").slice(1).join(":").trim();
-    else if(lower.startswith?.("contact:")) out.contact = line.slice(8).trim();
+    else if(lower.startsWith("lock no:") || lower.startsWith("lockno:") || lower.startsWith("lock:")) out.lock = line.split(":").slice(1).join(":").trim();
     else if(lower.startsWith("remove")) out.remove = line.split(":").slice(1).join(":").trim();
     else if(lower.startsWith("keep")) out.keep = line.split(":").slice(1).join(":").trim();
     else if(lower.startsWith("protect")) out.protect = line.split(":").slice(1).join(":").trim();
