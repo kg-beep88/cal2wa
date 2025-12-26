@@ -594,7 +594,7 @@
         <div class="muted" id="listSub">Sorted by time. No time = ALL DAY.</div>
       </div>
       <div class="row">
-        <button class="secondary small" id="authTopBtn">Authorize</button>
+        <button class="secondary small" id="authTopBtn" onclick="alert('Authorize button clicked'); if(window.authorizeNow){window.authorizeNow()} else {alert('authorizeNow missing')}">Authorize</button>
         <button class="secondary small" id="logoutTopBtn">Logout</button>
       </div>
     </div>
