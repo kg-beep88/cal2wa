@@ -820,11 +820,14 @@ function startDateLabel(ev){
 }
 
 function parseDescription(desc){
-  const out = { addr:"", remove:"", keep:"", protect:"", disposal:"" };
+  const out = { addr:"", contact:"", lock:"", remove:"", keep:"", protect:"", disposal:"" };
   const lines = (desc || "").split(/\r?\n/).map(x=>x.trim());
   for(const line of lines){
     const lower = line.toLowerCase();
     if(lower.startsWith("address:")) out.addr = line.slice(8).trim();
+    else if(lower.startsWith("contact:")) out.contact = line.slice(8).trim();
+    else if(lower.startsWith("lock") || lower.startsWith("lock no") || lower.startsWith("lockno")) out.lock = line.split(":").slice(1).join(":").trim();
+    else if(lower.startswith?.("contact:")) out.contact = line.slice(8).trim();
     else if(lower.startsWith("remove")) out.remove = line.split(":").slice(1).join(":").trim();
     else if(lower.startsWith("keep")) out.keep = line.split(":").slice(1).join(":").trim();
     else if(lower.startsWith("protect")) out.protect = line.split(":").slice(1).join(":").trim();
@@ -836,26 +839,37 @@ function parseDescription(desc){
 function buildDescription(fields){
   return [
     `Address: ${fields.addr || "__________"}`,
+    `Contact: ${fields.contact || "__________"}`,
+    `Lock No: ${fields.lock || "__________"}`,
     `SCOPE :`,
     `Remove : ${fields.remove || "__________"}`,
     `Keep : ${fields.keep || "__________"}`,
     `Protect : ${fields.protect || "_______"}`,
     `Disposal : ${fields.disposal || "____________________"}`
-  ].join("\n");
+  ].join("
+");
 }
 
 function buildWhatsAppForEvents(title, events){
   const lines = [title, ""];
   if(!events.length){
     lines.push("(no job)");
-    return lines.join("\n");
+    return lines.join("
+");
   }
   for(const ev of events){
-    lines.push(`【${fmtTime(ev)}】`);
-    lines.push((ev.description || "").trim() || "(no details)");
+    const fields = parseDescription((ev.description || "").trim());
+    const addr = fields.addr || "__________";
+    const contact = fields.contact || "__________";
+    const lock = fields.lock || "__________";
+    const remove = fields.remove || "__________";
+
+    lines.push(`Address: ${addr}`);
+    lines.push(`Remove: ${remove} | Contact: ${contact} | Lock No: ${lock}`);
     lines.push("--------------------------------");
   }
-  return lines.join("\n");
+  return lines.join("
+");
 }
 
 function escapeHtml(s){
@@ -1210,6 +1224,8 @@ if($("fDate")) $("fDate").value = $("datePick").value;
     $("modalBackdrop").setAttribute("data-event-id", "");
     $("fTime").value = "";
     $("fAddr").value = "";
+    if($("fContact")) $("fContact").value = "";
+    if($("fLock")) $("fLock").value = "";
     $("fRemove").value = "";
     $("fKeep").value = "";
     $("fProtect").value = "";
@@ -1232,6 +1248,8 @@ if($("fDate")) $("fDate").value = $("datePick").value;
 
   const fields = parseDescription(ev.description || "");
   $("fAddr").value = fields.addr || "";
+  if($("fContact")) $("fContact").value = fields.contact || "";
+  if($("fLock")) $("fLock").value = fields.lock || "";
   $("fRemove").value = fields.remove || "";
   $("fKeep").value = fields.keep || "";
   $("fProtect").value = fields.protect || "";
@@ -1244,6 +1262,8 @@ function buildEventPayloadForDate(dateStr){
   const time = ($("fTime").value || "").trim();
   const fields = {
     addr: ($("fAddr").value || "").trim(),
+    contact: ($("fContact")?$("fContact").value:"").trim(),
+    lock: ($("fLock")?$("fLock").value:"").trim(),
     remove: ($("fRemove").value || "").trim(),
     keep: ($("fKeep").value || "").trim(),
     protect: ($("fProtect").value || "").trim(),
@@ -1421,7 +1441,7 @@ $("closeModalBtn").onclick = closeModal;
 $("modalBackdrop").addEventListener("click", (e)=>{ if(e.target === $("modalBackdrop")) closeModal(); });
 
 $("clearBtn").onclick = ()=>{
-  $("fTime").value=""; $("fAddr").value=""; $("fRemove").value=""; $("fKeep").value=""; $("fProtect").value=""; $("fDisposal").value="";
+  $("fTime").value=""; $("fAddr").value=""; if($("fContact")) $("fContact").value=""; if($("fLock")) $("fLock").value=""; $("fRemove").value=""; $("fKeep").value=""; $("fProtect").value=""; $("fDisposal").value="";
   toast("Cleared");
 };
 

@@ -1,4 +1,4 @@
-const CACHE = "kg-demolish-v9";
+const CACHE = "kg-demolish-v11";
 const ASSETS = [
   "./",
   "./index.html",
