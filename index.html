@@ -503,13 +503,32 @@ function fmtTime(ev){
   const dt = new Date(ev.start.dateTime);
   return `${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
 }
+
+function eventSortKey(ev){
+  // Timed events first; ALL DAY last
+  if(ev.start && ev.start.dateTime){
+    return new Date(ev.start.dateTime).getTime();
+  }
+  // Put all-day after timed by adding 1 day offset from midnight
+  const day = ev.start?.date || (ev.start?.dateTime ? isoDateLocal(new Date(ev.start.dateTime)) : "");
+  if(day){
+    return new Date(day + "T23:59:59").getTime();
+  }
+  return Number.MAX_SAFE_INTEGER;
+}
+function sortDayEvents(list){
+  return (list||[]).slice().sort((a,b)=>eventSortKey(a)-eventSortKey(b));
+}
+
 function groupByDate(items){
   const g = {};
-  for(const ev of items){
+  for(const ev of sorted){
     const day = ev.start.date || (ev.start.dateTime ? isoDateLocal(new Date(ev.start.dateTime)) : "");
     if(!day) continue;
     (g[day] ||= []).push(ev);
   }
+  // sort each day by time
+  for(const k of Object.keys(g)) g[k] = sortDayEvents(g[k]);
   return g;
 }
 function eventMatchesFilter(ev){
@@ -576,9 +595,11 @@ async function load(){
 function renderDay(items){
   $("dayList").style.display="block";
   const box = $("dayList");
-  box.innerHTML = "<div style='font-weight:900'>Jobs (selected date)</div>";
+  box.innerHTML = "<div style='font-weight:900'>Jobs (selected date) — sorted by time</div>";
 
-  if(!items.length){
+  const sorted = sortDayEvents(items);
+
+  if(!sorted.length){
     const p = document.createElement("div");
     p.className="muted";
     p.style.marginTop="8px";
@@ -587,7 +608,7 @@ function renderDay(items){
     return;
   }
 
-  for(const ev of items){
+  for(const ev of sorted){
     const row = document.createElement("div");
     row.style.marginTop="10px";
     row.style.border="1px solid var(--line)";
@@ -664,7 +685,9 @@ function renderMonth(items, range){
       bar.dataset.id = ev.id;
       bar.dataset.color = getEventColorId(ev);
 
-      bar.innerHTML = `<div class="eventText">${escapeHtml(chipLabel(ev))}</div>`;
+      const t = (ev.start?.dateTime) ? fmtTime(ev) : "";
+      const label = t ? (t + " " + chipLabel(ev)) : chipLabel(ev);
+      bar.innerHTML = `<div class="eventText">${escapeHtml(label)}</div>`;
       bar.addEventListener("dragstart", (e)=>{
         e.dataTransfer.setData("text/plain", ev.id);
         e.dataTransfer.effectAllowed = "copyMove";
