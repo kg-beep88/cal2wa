@@ -1,4 +1,4 @@
-const CACHE = "kg-cal2wa-clean-v1";
+const CACHE = "kg-cal2wa-clean-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -22,6 +22,7 @@ self.addEventListener("activate", (e) => {
   })());
 });
 
+// Network-first for HTML so updates show
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   const url = new URL(req.url);
