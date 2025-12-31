@@ -110,7 +110,7 @@
           <div class="s">Edit jobs + send WhatsApp daily schedule</div>
         </div>
       </div>
-      <div class="muted" style="font-size:12px;font-weight:900;">CLEAN v4</div>
+      <div class="muted" style="font-size:12px;font-weight:900;">CLEAN v5.2</div>
     </div>
   </div>
 
@@ -125,6 +125,7 @@
         </div>
         <div class="right">
           <button class="secondary small" id="loadBtn">Load</button>
+          <button class="secondary small" id="resetBtn" title="Clear app cache if updates are not showing">Reset Cache</button>
           <button class="plus" id="newBtn" title="Add job">+</button>
         </div>
       </div>
@@ -597,9 +598,9 @@ function renderDay(items){
   const box = $("dayList");
   box.innerHTML = "<div style='font-weight:900'>Jobs (selected date) — sorted by time</div>";
 
-  const sorted = sortDayEvents(items);
+  const itemsSorted = sortDayEvents(items);
 
-  if(!sorted.length){
+  if(!itemsSorted.length){
     const p = document.createElement("div");
     p.className="muted";
     p.style.marginTop="8px";
@@ -608,7 +609,7 @@ function renderDay(items){
     return;
   }
 
-  for(const ev of sorted){
+  for(const ev of itemsSorted){
     const row = document.createElement("div");
     row.style.marginTop="10px";
     row.style.border="1px solid var(--line)";
@@ -952,6 +953,26 @@ function shiftDays(delta){
 }
 
 /* ===== Wire UI ===== */
+
+async function resetAppCache(){
+  if(!confirm("Reset app cache? This will reload the page.")) return;
+  try{
+    // Unregister service workers
+    if("serviceWorker" in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    // Delete caches
+    if("caches" in window){
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  }catch(e){
+    dbg(e.message || e);
+  }
+  // Force reload
+  location.reload();
+}
 function wire(){
   $("datePick").value = isoDateLocal(new Date());
 
@@ -963,6 +984,7 @@ function wire(){
   $("nextBtn").addEventListener("click", ()=>shiftDays($("viewSel").value==="month" ? 30 : 1));
 
   $("loadBtn").addEventListener("click", load);
+  $("resetBtn").addEventListener("click", resetAppCache);
   $("newBtn").addEventListener("click", ()=>openModal("new"));
 
   $("copyWaBtn").addEventListener("click", copyWhatsApp);
