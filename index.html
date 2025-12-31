@@ -522,7 +522,7 @@ function sortDayEvents(list){
 
 function groupByDate(items){
   const g = {};
-  for(const ev of sorted){
+  for(const ev of items){
     const day = ev.start.date || (ev.start.dateTime ? isoDateLocal(new Date(ev.start.dateTime)) : "");
     if(!day) continue;
     (g[day] ||= []).push(ev);
