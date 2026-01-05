@@ -690,7 +690,11 @@ function renderMonth(items, range){
       const label = t ? (t + " " + chipLabel(ev)) : chipLabel(ev);
       bar.innerHTML = `<div class="eventText">${escapeHtml(label)}</div>`;
       bar.addEventListener("dragstart", (e)=>{
+        // Capture copy/move at drag start (some browsers don't keep shiftKey on drop)
+        const isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints>0);
+        const act0 = (e.shiftKey && !isTouch) ? "C" : "M";
         e.dataTransfer.setData("text/plain", ev.id);
+        e.dataTransfer.setData("text/kg-act", act0);
         e.dataTransfer.effectAllowed = "copyMove";
       });
       bar.addEventListener("click", ()=>openModal("edit", ev));
@@ -716,7 +720,7 @@ function renderMonth(items, range){
       if(!ev) return;
 
       const isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints>0);
-      let act = (e.shiftKey && !isTouch) ? "C" : "M";
+      let act = (e.dataTransfer.getData("text/kg-act") || ((e.shiftKey && !isTouch) ? "C" : "M")).toUpperCase();
       if(isTouch){
         const a = prompt("Type M = Move, C = Copy (default M):", "M");
         act = (a || "M").trim().toUpperCase();
