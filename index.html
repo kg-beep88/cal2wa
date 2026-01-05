@@ -3,21 +3,15 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>KG Demolish Calendar</title>
+  <title>KG Plasterceil Calendar</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <meta name="theme-color" content="#111827"/>
   <script src="config.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     :root{
-      --bg:#ffffff;
-      --txt:#0f172a;
-      --muted:#6b7280;
-      --line:#e6e9ef;
-      --blue:#1a73e8;
+      --bg:#ffffff; --txt:#0f172a; --muted:#6b7280; --line:#e6e9ef; --blue:#1a73e8;
       --shadow: 0 8px 22px rgba(2,6,23,.08);
-
-      /* 6 colors (match Google Calendar colorId) */
       --c-red-bg:#fce8e6; --c-red-bd:#f9bdbb;
       --c-purple-bg:#f3e8fd; --c-purple-bd:#d7b7ff;
       --c-green-bg:#e6f4ea; --c-green-bd:#b7dfc3;
@@ -65,38 +59,109 @@
     .eventBar{display:flex;align-items:center;padding:4px 8px;border-radius:10px;font-size:12px;font-weight:800;margin-top:6px;cursor:grab;user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line);background:#f3f4f6}
     .eventBar:active{cursor:grabbing}
     .eventText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-    /* color styles by data-color (Google Calendar colorId) */
     .eventBar[data-color="11"]{ background:var(--c-red-bg); border-color:var(--c-red-bd); }
     .eventBar[data-color="6"]{ background:var(--c-purple-bg); border-color:var(--c-purple-bd); }
     .eventBar[data-color="10"]{ background:var(--c-green-bg); border-color:var(--c-green-bd); }
     .eventBar[data-color="3"]{ background:var(--c-blue-bg); border-color:var(--c-blue-bd); }
     .eventBar[data-color="5"]{ background:var(--c-yellow-bg); border-color:var(--c-yellow-bd); }
     .eventBar[data-color="2"]{ background:var(--c-teal-bg); border-color:var(--c-teal-bd); }
-
     .moreLink{margin-top:6px;font-size:12px;font-weight:900;color:var(--blue);cursor:pointer;user-select:none}
     .dropHint{outline:2px dashed rgba(26,115,232,.45);outline-offset:-6px}
-    .modalBackdrop{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:14px;z-index:100}
-    .modal{width:min(720px,100%);background:#fff;border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden}
-    .modalHead{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);background:#fff}
+
+    .modalBackdrop{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:14px;z-index:100
+
+align-items: center;
+
+
+
+align-items: center;
+justify-content: center;
+
+}
+    .modal{width:min(780px,100%);background:#fff;border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden
+
+display:flex;
+flex-direction:column;
+max-height: calc(100dvh - 28px);
+
+
+
+display:flex;
+flex-direction:column;
+width:min(780px, 100%);
+max-height: calc(100vh - 24px);
+height: auto;
+overflow:hidden;
+
+}
+    .modalHead{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);background:#fff
+
+flex: 0 0 auto;
+
+}
     .modalHead .h{font-weight:900}
-    .modalBody{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .modalBody{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px
+
+overflow:auto;
+-webkit-overflow-scrolling: touch;
+padding-bottom: calc(14px + env(safe-area-inset-bottom));
+
+
+
+flex: 1 1 auto;
+min-height: 0;
+overflow: auto;
+-webkit-overflow-scrolling: touch;
+padding-bottom: 18px;
+
+}
     .modalBody .full{grid-column:1/-1}
     .modalBody label{display:block;font-size:12px;color:var(--muted);margin:6px 0 6px;font-weight:900}
     .modalBody input,.modalBody textarea,.modalBody select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);outline:none;background:#fff}
-    textarea{min-height:88px;resize:vertical}
-    .modalFoot{padding:12px 14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#fff}
+    textarea{min-height:92px;resize:vertical}
+    .modalFoot{padding:12px 14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#fff
+
+position: sticky;
+bottom: 0;
+z-index: 2;
+background: #fff;
+padding-bottom: calc(12px + env(safe-area-inset-bottom));
+
+
+
+flex: 0 0 auto;
+position: relative; /* not sticky; always visible */
+border-top: 1px solid var(--line);
+background: #fff;
+padding-bottom: calc(12px + env(safe-area-inset-bottom));
+
+}
     .danger{background:#ef4444;border-color:#ef4444}
     .muted{color:var(--muted)}
+    .hintSmall{font-size:12px;color:var(--muted);margin-top:6px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+
     @media (max-width:520px){
-      .wrap{padding:10px}
+      .wrap{padding:10px
+      .modal{width:100%; max-height: calc(100dvh - 12px); border-radius:16px;
+      .modalBackdrop{padding:10px; align-items:stretch;}
+
+      .modalBody{padding-bottom: 24px;}
+
+    }
+
+      .modalBackdrop{padding:10px; align-items:stretch;}
+
+      .modalBody{padding-bottom: calc(18px + env(safe-area-inset-bottom));}
+
+    }
       .topInner{padding:12px 10px}
-      .brandTitle .t{font-size:16px}
       .controls{grid-template-columns:1fr 1fr;gap:8px}
       .dayCell{min-height:92px;padding:8px 6px 6px}
       .dayMeta{display:none}
       .eventBar{font-size:11px;padding:4px 6px}
       .dowHeader{position:sticky;top:62px;z-index:40;background:#fff}
+      .modalBody{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -106,11 +171,11 @@
       <div class="brand">
         <div class="logo">KG</div>
         <div class="brandTitle">
-          <div class="t">KG Demolish Calendar</div>
+          <div class="t">KG Plasterceil Calendar</div>
           <div class="s">Edit jobs + send WhatsApp daily schedule</div>
         </div>
       </div>
-      <div class="muted" style="font-size:12px;font-weight:900;">CLEAN v5.2.4.4</div>
+      <div class="muted" style="font-size:12px;font-weight:900;">CLEAN v6.0</div>
     </div>
   </div>
 
@@ -165,7 +230,7 @@
         </div>
       </div>
 
-      <div class="status" id="status">Ready. Click Authorize to connect Google Calendar. (If you see API 401, click Authorize again.)</div>
+      <div class="status" id="status">Ready. Click Authorize to connect Google Calendar.</div>
       <div class="debug" id="debugBox"></div>
 
       <div class="dowHeader" id="dowHeader" style="display:none;">
@@ -217,8 +282,7 @@
             <option value="2">Teal</option>
           </select>
         </div>
-        <div></div>
-
+        <div class="hintSmall" style="align-self:end">Drag job to another date: Move. Hold SHIFT to Copy (desktop). Phone will ask Move/Copy.</div>
         <div class="full">
           <label>Remove</label>
           <input id="fRemove" placeholder="Remove :"/>
@@ -241,7 +305,6 @@
         <div class="full">
           <label>Preview (saved into Google Calendar description)</label>
           <textarea id="preview" readonly></textarea>
-          <div class="muted" style="margin-top:6px">Tip: Drag a job to another date to Move. Hold SHIFT while dropping to Copy (desktop). On phone, you will be asked Move/Copy.</div>
         </div>
       </div>
       <div class="modalFoot">
@@ -272,95 +335,6 @@ let tokenClient = null;
 let _tokenWaiter = null;
 
 let lastEvents = [];
-let dragAct = "M"; // remembered at dragstart
-let shiftDown = false;
-window.addEventListener("keydown", (e)=>{ if(e.key==="Shift") shiftDown = true; });
-window.addEventListener("keyup", (e)=>{ if(e.key==="Shift") shiftDown = false; });
-window.addEventListener("blur", ()=>{ shiftDown = false; });
-
-let monthDrag = null; // {ev, moved, startX, startY, ghost, overCell}
-
-function clearDropHints(){
-  document.querySelectorAll(".dayCell.dropHint").forEach(c=>c.classList.remove("dropHint"));
-}
-function removeGhost(){
-  if(monthDrag?.ghost){ try{ monthDrag.ghost.remove(); }catch{} }
-}
-async function finishMonthDrag(dropDateStr, jsEvent){
-  const ev = monthDrag?.ev;
-  if(!ev || !dropDateStr) return;
-  const isTouch = window.matchMedia("(pointer: coarse)").matches;
-  let act = (!isTouch && (jsEvent?.shiftKey || shiftDown)) ? "C" : "M";
-  if(isTouch){
-    const a = prompt("Type M = Move, C = Copy (default M):", "M");
-    act = (a || "M").trim().toUpperCase();
-  }
-  try{
-    setStatus(act==="C" ? "Copying…" : "Moving…");
-    if(act==="C") await copyEventToDate(ev, dropDateStr);
-    else await moveEventToDate(ev, dropDateStr);
-    await load();
-    setStatus(act==="C" ? "Copied" : "Moved");
-  }catch(err){
-    dbg(err.message||err);
-  }
-}
-
-document.addEventListener("pointermove", (e)=>{
-  if(!monthDrag) return;
-  const dx = Math.abs(e.clientX - monthDrag.startX);
-  const dy = Math.abs(e.clientY - monthDrag.startY);
-  if(!monthDrag.moved && (dx > 4 || dy > 4)){
-    monthDrag.moved = true;
-    // ghost
-    const g = document.createElement("div");
-    g.className = "eventBar draggingGhost";
-    g.style.position = "fixed";
-    g.style.left = (e.clientX + 8) + "px";
-    g.style.top = (e.clientY + 8) + "px";
-    g.style.zIndex = "9999";
-    g.style.pointerEvents = "none";
-    g.style.opacity = "0.85";
-    g.style.width = "220px";
-    g.innerHTML = monthDrag.ghostHTML || "";
-    document.body.appendChild(g);
-    monthDrag.ghost = g;
-  }
-  if(monthDrag.ghost){
-    monthDrag.ghost.style.left = (e.clientX + 8) + "px";
-    monthDrag.ghost.style.top = (e.clientY + 8) + "px";
-  }
-  // highlight cell under pointer
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const cell = el && el.closest ? el.closest(".dayCell") : null;
-  if(cell && cell.dataset && cell.dataset.day){
-    if(monthDrag.overCell !== cell){
-      clearDropHints();
-      cell.classList.add("dropHint");
-      monthDrag.overCell = cell;
-    }
-  }else{
-    clearDropHints();
-    monthDrag.overCell = null;
-  }
-});
-
-document.addEventListener("pointerup", async (e)=>{
-  if(!monthDrag) return;
-  const md = monthDrag;
-  monthDrag = null;
-  clearDropHints();
-  removeGhost();
-  // Treat as click if not moved
-  if(!md.moved){
-    try{ openModal("edit", md.ev); }catch{}
-    return;
-  }
-  const dateStr = md.overCell?.dataset?.day || null;
-  await finishMonthDrag(dateStr, e);
-});
-
-
 let modalMode = "new";
 let editingEvent = null;
 
@@ -392,6 +366,21 @@ function escapeHtml(s){
   return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 }
 
+function fmtTime(ev){
+  const dt = new Date(ev.start.dateTime);
+  return `${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
+}
+function eventSortKey(ev){
+  if(ev.start && ev.start.dateTime) return new Date(ev.start.dateTime).getTime();
+  const day = ev.start?.date || (ev.start?.dateTime ? isoDateLocal(new Date(ev.start.dateTime)) : "");
+  if(day) return new Date(day + "T23:59:59").getTime();
+  return Number.MAX_SAFE_INTEGER;
+}
+function sortDayEvents(list){
+  return (list||[]).slice().sort((a,b)=>eventSortKey(a)-eventSortKey(b));
+}
+
+
 function parseDescription(desc){
   const out = { addr:"", contact:"", lock:"", remove:"", keep:"", protect:"", disposal:"", colorId:"" };
   const lines = (desc || "").split(/\r?\n/);
@@ -399,20 +388,23 @@ function parseDescription(desc){
     const line = (raw || "").trim();
     if(!line) continue;
     const lower = line.toLowerCase();
-    if(lower.startsWith("address:")) out.addr = line.slice(8).trim();
-    else if(lower.startsWith("contact:")) out.contact = line.slice(8).trim();
+
+    if(lower.startsWith("address:")) { out.addr = line.slice(8).trim(); }
+    else if(lower.startsWith("contact:")) { out.contact = line.slice(8).trim(); }
     else if(lower.startsWith("lock no:") || lower.startsWith("lockno:") || lower.startsWith("lock:")){
       out.lock = line.split(":").slice(1).join(":").trim();
-    } else if(lower.startsWith("remove")) out.remove = line.split(":").slice(1).join(":").trim();
-    else if(lower.startsWith("keep")) out.keep = line.split(":").slice(1).join(":").trim();
-    else if(lower.startsWith("protect")) out.protect = line.split(":").slice(1).join(":").trim();
-    else if(lower.startsWith("disposal")) out.disposal = line.split(":").slice(1).join(":").trim();
-    else if(lower.startsWith("color:")) out.colorId = line.split(":").slice(1).join(":").trim();
+    }
+    else if(lower.startsWith("remove")) { out.remove = line.split(":").slice(1).join(":").trim(); }
+    else if(lower.startsWith("keep")) { out.keep = line.split(":").slice(1).join(":").trim(); }
+    else if(lower.startsWith("protect")) { out.protect = line.split(":").slice(1).join(":").trim(); }
+    else if(lower.startsWith("disposal")) { out.disposal = line.split(":").slice(1).join(":").trim(); }
+    else if(lower.startsWith("color:")) { out.colorId = line.split(":").slice(1).join(":").trim(); }
   }
   return out;
 }
 
 function buildDescription(fields){
+
   return [
     `Address: ${fields.addr || "__________"}`,
     `Contact: ${fields.contact || "__________"}`,
@@ -524,6 +516,24 @@ function logout(){
   setStatus("Logged out.");
 }
 
+/* ===== Reset Cache ===== */
+async function resetAppCache(){
+  if(!confirm("Reset app cache? This will reload the page.")) return;
+  try{
+    if("serviceWorker" in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if("caches" in window){
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  }catch(e){
+    dbg(e.message || e);
+  }
+  location.reload();
+}
+
 /* ===== API ===== */
 async function apiFetch(url, opts={}, _retry=true){
   if(!accessToken || (tokenExpiryMs && Date.now() > (tokenExpiryMs - 60_000))){
@@ -589,26 +599,6 @@ function monthRange(anchor){
   const next = new Date(d.getFullYear(), d.getMonth()+1, 1);
   return { first, next };
 }
-function fmtTime(ev){
-  const dt = new Date(ev.start.dateTime);
-  return `${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
-}
-
-function eventSortKey(ev){
-  // Timed events first; ALL DAY last
-  if(ev.start && ev.start.dateTime){
-    return new Date(ev.start.dateTime).getTime();
-  }
-  // Put all-day after timed by adding 1 day offset from midnight
-  const day = ev.start?.date || (ev.start?.dateTime ? isoDateLocal(new Date(ev.start.dateTime)) : "");
-  if(day){
-    return new Date(day + "T23:59:59").getTime();
-  }
-  return Number.MAX_SAFE_INTEGER;
-}
-function sortDayEvents(list){
-  return (list||[]).slice().sort((a,b)=>eventSortKey(a)-eventSortKey(b));
-}
 
 function groupByDate(items){
   const g = {};
@@ -617,10 +607,10 @@ function groupByDate(items){
     if(!day) continue;
     (g[day] ||= []).push(ev);
   }
-  // sort each day by time
   for(const k of Object.keys(g)) g[k] = sortDayEvents(g[k]);
   return g;
 }
+
 function eventMatchesFilter(ev){
   const hay = ((ev.summary||"") + " " + (ev.description||"") + " " + (ev.location||"")).toLowerCase();
   return hay.includes(DEFAULT_FILTER.toLowerCase());
@@ -662,6 +652,7 @@ async function load(){
     const view = $("viewSel").value;
     const { items, range } = await fetchEvents();
     lastEvents = items;
+    for(const k in _assignCache){ delete _assignCache[k]; }
 
     if(view==="month"){
       renderMonth(items, range);
@@ -771,6 +762,7 @@ function renderMonth(items, range){
     function addBar(ev){
       const bar = document.createElement("div");
       bar.className="eventBar";
+      bar.draggable = true;
       bar.dataset.id = ev.id;
       bar.dataset.color = getEventColorId(ev);
 
@@ -778,22 +770,11 @@ function renderMonth(items, range){
       const label = t ? (t + " " + chipLabel(ev)) : chipLabel(ev);
       bar.innerHTML = `<div class="eventText">${escapeHtml(label)}</div>`;
 
-      // Custom pointer-based dragging (more reliable than HTML5 drag+drop in Chrome when SHIFT is held)
-      bar.addEventListener("pointerdown", (e)=>{
-        if(e.button !== 0) return; // left click only
-        e.preventDefault(); // prevent text selection / browser drag quirks
-        e.stopPropagation();
-        monthDrag = {
-          ev,
-          moved: false,
-          startX: e.clientX,
-          startY: e.clientY,
-          overCell: null,
-          ghost: null,
-          ghostHTML: bar.innerHTML
-        };
+      bar.addEventListener("dragstart", (e)=>{
+        e.dataTransfer.setData("text/plain", ev.id);
+        e.dataTransfer.effectAllowed = "copyMove";
       });
-
+      bar.addEventListener("click", ()=>openModal("edit", ev));
       cell.appendChild(bar);
     }
 
@@ -805,6 +786,33 @@ function renderMonth(items, range){
       more.onclick = ()=>{ more.remove(); dayEvents.slice(MAX_SHOW).forEach(addBar); };
       cell.appendChild(more);
     }
+
+    cell.addEventListener("dragover", (e)=>{ e.preventDefault(); cell.classList.add("dropHint"); });
+    cell.addEventListener("dragleave", ()=>cell.classList.remove("dropHint"));
+    cell.addEventListener("drop", async (e)=>{
+      e.preventDefault();
+      cell.classList.remove("dropHint");
+      const id = e.dataTransfer.getData("text/plain");
+      const ev = lastEvents.find(x=>x.id===id);
+      if(!ev) return;
+
+      const isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints>0);
+      let act = (e.shiftKey && !isTouch) ? "C" : "M";
+      if(isTouch){
+        const a = prompt("Type M = Move, C = Copy (default M):", "M");
+        act = (a || "M").trim().toUpperCase();
+      }
+
+      try{
+        setStatus(act==="C" ? "Copying…" : "Moving…");
+        if(act==="C") await copyEventToDate(ev, dateStr);
+        else await moveEventToDate(ev, dateStr);
+        await load();
+        setStatus(act==="C" ? "Copied" : "Moved");
+      }catch(err){
+        dbg(err.message||err);
+      }
+    });
 
     cell.addEventListener("click", ()=>{ $("datePick").value = dateStr; });
     cell.addEventListener("dblclick", ()=>{ $("datePick").value = dateStr; openModal("new"); });
@@ -886,8 +894,7 @@ function buildEventPayload(dateStr){
   const desc = buildDescription(fields);
   const addr = (fields.addr || "JOB").trim();
 
-  // Title shows ADDRESS ONLY
-  const summary = `${addr}`.trim();
+  const summary = `${addr}`.trim(); // title shows ADDRESS ONLY
   const colorId = fields.colorId || "11";
 
   const time = ($("fTime").value || "").trim();
@@ -957,6 +964,21 @@ function shiftEvent(ev, targetDate){
   return copy;
 }
 
+// IMPORTANT: when copying, DO NOT send identifiers (id / iCalUID / recurring ids / etag).
+// Those can cause API 409 duplicate errors.
+function sanitizeCopyPayload(ev, targetDate){
+  const shifted = shiftEvent(ev, targetDate);
+  return {
+    summary: ((ev.summary || "").trim() || chipLabel(ev)),
+    description: ev.description || "",
+    location: ev.location || "",
+    colorId: (ev.colorId || getEventColorId(ev) || "11"),
+    start: shifted.start,
+    end: shifted.end
+  };
+}
+
+
 async function moveEventToDate(ev, targetDate){
   const shifted = shiftEvent(ev, targetDate);
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
@@ -964,22 +986,11 @@ async function moveEventToDate(ev, targetDate){
 }
 
 async function copyEventToDate(ev, targetDate){
-  // IMPORTANT: don't POST the full event object (it contains unique identifiers like iCalUID)
-  // or Google Calendar may return: 409 duplicate / "The requested identifier already exists."
-
-  // Recompute the target start/end, then build a clean insert payload.
-  const shifted = shiftEvent({ start: ev.start, end: ev.end }, targetDate);
-  const payload = {
-    summary: (ev.summary || "").trim(),
-    description: ev.description || "",
-    colorId: getEventColorId(ev),
-    start: shifted.start,
-    end: shifted.end
-  };
-
+  const payload = sanitizeCopyPayload(ev, targetDate);
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
   await apiFetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
 }
+
 
 /* ===== WhatsApp ===== */
 function buildWhatsAppTextForDate(dateStr, events){
@@ -988,7 +999,8 @@ function buildWhatsAppTextForDate(dateStr, events){
     lines.push("(no job)");
     return lines.join("\n");
   }
-  for(const ev of events){
+  const sorted = sortDayEvents(events);
+  for(const ev of sorted){
     const f = parseDescription(ev.description || "");
     const addr = f.addr || "__________";
     const contact = f.contact || "__________";
@@ -1037,26 +1049,6 @@ function shiftDays(delta){
 }
 
 /* ===== Wire UI ===== */
-
-async function resetAppCache(){
-  if(!confirm("Reset app cache? This will reload the page.")) return;
-  try{
-    // Unregister service workers
-    if("serviceWorker" in navigator){
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister()));
-    }
-    // Delete caches
-    if("caches" in window){
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-    }
-  }catch(e){
-    dbg(e.message || e);
-  }
-  // Force reload
-  location.reload();
-}
 function wire(){
   $("datePick").value = isoDateLocal(new Date());
 
@@ -1084,7 +1076,6 @@ function wire(){
     $(id).addEventListener("input", refreshPreview);
     $(id).addEventListener("change", refreshPreview);
   }
-
   $("clearBtn").addEventListener("click", ()=>{
     $("fTime").value = "";
     $("fAddr").value = "";
