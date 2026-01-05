@@ -273,6 +273,93 @@ let _tokenWaiter = null;
 
 let lastEvents = [];
 let dragAct = "M"; // remembered at dragstart
+let shiftDown = false;
+window.addEventListener("keydown", (e)=>{ if(e.key==="Shift") shiftDown = true; });
+window.addEventListener("keyup", (e)=>{ if(e.key==="Shift") shiftDown = false; });
+window.addEventListener("blur", ()=>{ shiftDown = false; });
+
+let monthDrag = null; // {ev, moved, startX, startY, ghost, overCell}
+
+function clearDropHints(){
+  document.querySelectorAll(".dayCell.dropHint").forEach(c=>c.classList.remove("dropHint"));
+}
+function removeGhost(){
+  if(monthDrag?.ghost){ try{ monthDrag.ghost.remove(); }catch{} }
+}
+async function finishMonthDrag(dropDateStr, jsEvent){
+  const ev = monthDrag?.ev;
+  if(!ev || !dropDateStr) return;
+  const isTouch = window.matchMedia("(pointer: coarse)").matches;
+  let act = (!isTouch && (jsEvent?.shiftKey || shiftDown)) ? "C" : "M";
+  if(isTouch){
+    const a = prompt("Type M = Move, C = Copy (default M):", "M");
+    act = (a || "M").trim().toUpperCase();
+  }
+  try{
+    setStatus(act==="C" ? "Copying…" : "Moving…");
+    if(act==="C") await copyEventToDate(ev, dropDateStr);
+    else await moveEventToDate(ev, dropDateStr);
+    await load();
+    setStatus(act==="C" ? "Copied" : "Moved");
+  }catch(err){
+    dbg(err.message||err);
+  }
+}
+
+document.addEventListener("pointermove", (e)=>{
+  if(!monthDrag) return;
+  const dx = Math.abs(e.clientX - monthDrag.startX);
+  const dy = Math.abs(e.clientY - monthDrag.startY);
+  if(!monthDrag.moved && (dx > 4 || dy > 4)){
+    monthDrag.moved = true;
+    // ghost
+    const g = document.createElement("div");
+    g.className = "eventBar draggingGhost";
+    g.style.position = "fixed";
+    g.style.left = (e.clientX + 8) + "px";
+    g.style.top = (e.clientY + 8) + "px";
+    g.style.zIndex = "9999";
+    g.style.pointerEvents = "none";
+    g.style.opacity = "0.85";
+    g.style.width = "220px";
+    g.innerHTML = monthDrag.ghostHTML || "";
+    document.body.appendChild(g);
+    monthDrag.ghost = g;
+  }
+  if(monthDrag.ghost){
+    monthDrag.ghost.style.left = (e.clientX + 8) + "px";
+    monthDrag.ghost.style.top = (e.clientY + 8) + "px";
+  }
+  // highlight cell under pointer
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const cell = el && el.closest ? el.closest(".dayCell") : null;
+  if(cell && cell.dataset && cell.dataset.day){
+    if(monthDrag.overCell !== cell){
+      clearDropHints();
+      cell.classList.add("dropHint");
+      monthDrag.overCell = cell;
+    }
+  }else{
+    clearDropHints();
+    monthDrag.overCell = null;
+  }
+});
+
+document.addEventListener("pointerup", async (e)=>{
+  if(!monthDrag) return;
+  const md = monthDrag;
+  monthDrag = null;
+  clearDropHints();
+  removeGhost();
+  // Treat as click if not moved
+  if(!md.moved){
+    try{ openModal("edit", md.ev); }catch{}
+    return;
+  }
+  const dateStr = md.overCell?.dataset?.day || null;
+  await finishMonthDrag(dateStr, e);
+});
+
 
 let modalMode = "new";
 let editingEvent = null;
@@ -684,23 +771,29 @@ function renderMonth(items, range){
     function addBar(ev){
       const bar = document.createElement("div");
       bar.className="eventBar";
-      bar.draggable = true;
       bar.dataset.id = ev.id;
       bar.dataset.color = getEventColorId(ev);
 
       const t = (ev.start?.dateTime) ? fmtTime(ev) : "";
       const label = t ? (t + " " + chipLabel(ev)) : chipLabel(ev);
       bar.innerHTML = `<div class="eventText">${escapeHtml(label)}</div>`;
-      bar.addEventListener("dragstart", (e)=>{
-        // Capture copy/move at drag start (some browsers don't keep shiftKey on drop)
-        const isTouch = window.matchMedia("(pointer: coarse)").matches;
-        const act0 = (e.shiftKey && !isTouch) ? "C" : "M";
-        dragAct = act0;
-        e.dataTransfer.setData("text/plain", ev.id);
-        e.dataTransfer.setData("text/kg-act", act0);
-        e.dataTransfer.effectAllowed = "copyMove";
+
+      // Custom pointer-based dragging (more reliable than HTML5 drag+drop in Chrome when SHIFT is held)
+      bar.addEventListener("pointerdown", (e)=>{
+        if(e.button !== 0) return; // left click only
+        e.preventDefault(); // prevent text selection / browser drag quirks
+        e.stopPropagation();
+        monthDrag = {
+          ev,
+          moved: false,
+          startX: e.clientX,
+          startY: e.clientY,
+          overCell: null,
+          ghost: null,
+          ghostHTML: bar.innerHTML
+        };
       });
-      bar.addEventListener("click", ()=>openModal("edit", ev));
+
       cell.appendChild(bar);
     }
 
@@ -712,36 +805,6 @@ function renderMonth(items, range){
       more.onclick = ()=>{ more.remove(); dayEvents.slice(MAX_SHOW).forEach(addBar); };
       cell.appendChild(more);
     }
-
-    cell.addEventListener("dragover", (e)=>{ e.preventDefault(); cell.classList.add("dropHint"); });
-    cell.addEventListener("dragleave", ()=>cell.classList.remove("dropHint"));
-    cell.addEventListener("drop", async (e)=>{
-      e.preventDefault();
-      cell.classList.remove("dropHint");
-      const id = e.dataTransfer.getData("text/plain");
-      const ev = lastEvents.find(x=>x.id===id);
-      if(!ev) return;
-
-      const isTouch = window.matchMedia("(pointer: coarse)").matches;
-      // Decide action at DROP time so users can press SHIFT any time before releasing the mouse.
-      // (Some people press SHIFT near the end of the drag; relying only on dragstart would miss that.)
-      const storedAct = (e.dataTransfer.getData("text/kg-act") || dragAct || "M").toUpperCase();
-      let act = (!isTouch && e.shiftKey) ? "C" : storedAct;
-      if(isTouch){
-        const a = prompt("Type M = Move, C = Copy (default M):", "M");
-        act = (a || "M").trim().toUpperCase();
-      }
-
-      try{
-        setStatus(act==="C" ? "Copying…" : "Moving…");
-        if(act==="C") await copyEventToDate(ev, dateStr);
-        else await moveEventToDate(ev, dateStr);
-        await load();
-        setStatus(act==="C" ? "Copied" : "Moved");
-      }catch(err){
-        dbg(err.message||err);
-      }
-    });
 
     cell.addEventListener("click", ()=>{ $("datePick").value = dateStr; });
     cell.addEventListener("dblclick", ()=>{ $("datePick").value = dateStr; openModal("new"); });
