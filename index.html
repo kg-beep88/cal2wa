@@ -110,7 +110,7 @@
           <div class="s">Edit jobs + send WhatsApp daily schedule</div>
         </div>
       </div>
-      <div class="muted" style="font-size:12px;font-weight:900;">CLEAN v5.2</div>
+      <div class="muted" style="font-size:12px;font-weight:900;">CLEAN v5.2.4.4</div>
     </div>
   </div>
 
@@ -723,7 +723,10 @@ function renderMonth(items, range){
       if(!ev) return;
 
       const isTouch = window.matchMedia("(pointer: coarse)").matches;
-      let act = (e.dataTransfer.getData("text/kg-act") || dragAct || ((e.shiftKey && !isTouch) ? "C" : "M")).toUpperCase();
+      // Decide action at DROP time so users can press SHIFT any time before releasing the mouse.
+      // (Some people press SHIFT near the end of the drag; relying only on dragstart would miss that.)
+      const storedAct = (e.dataTransfer.getData("text/kg-act") || dragAct || "M").toUpperCase();
+      let act = (!isTouch && e.shiftKey) ? "C" : storedAct;
       if(isTouch){
         const a = prompt("Type M = Move, C = Copy (default M):", "M");
         act = (a || "M").trim().toUpperCase();
