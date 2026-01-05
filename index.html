@@ -891,8 +891,19 @@ async function moveEventToDate(ev, targetDate){
 }
 
 async function copyEventToDate(ev, targetDate){
-  const payload = shiftEvent(ev, targetDate);
-  delete payload.id;
+  // IMPORTANT: don't POST the full event object (it contains unique identifiers like iCalUID)
+  // or Google Calendar may return: 409 duplicate / "The requested identifier already exists."
+
+  // Recompute the target start/end, then build a clean insert payload.
+  const shifted = shiftEvent({ start: ev.start, end: ev.end }, targetDate);
+  const payload = {
+    summary: (ev.summary || "").trim(),
+    description: ev.description || "",
+    colorId: getEventColorId(ev),
+    start: shifted.start,
+    end: shifted.end
+  };
+
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
   await apiFetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
 }
