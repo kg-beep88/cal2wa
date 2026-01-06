@@ -110,7 +110,7 @@
           <div class="s">Edit jobs + send WhatsApp daily schedule</div>
         </div>
       </div>
-      <div class="muted" style="font-size:12px;font-weight:900;">CLEAN v5.2.4.4</div>
+      <div class="muted" style="font-size:12px;font-weight:900;">CLEAN v5.2.4.5</div>
     </div>
   </div>
 
@@ -344,9 +344,23 @@ function chipLabel(ev){
   const f = parseDescription(ev.description || "");
   return f.addr || ev.summary || "(No address)";
 }
+function sanitizeColorId(x){
+  // Google Calendar colorId must be 1..11 (string). Some older jobs had messy "Color:" lines like "11 #KG".
+  const s = String(x || "").trim();
+  if(!s) return "";
+  const n = parseInt(s, 10);
+  if(Number.isFinite(n) && n >= 1 && n <= 11) return String(n);
+  const m = s.match(/(\d{1,2})/);
+  if(m){
+    const n2 = parseInt(m[1], 10);
+    if(Number.isFinite(n2) && n2 >= 1 && n2 <= 11) return String(n2);
+  }
+  return "";
+}
+
 function getEventColorId(ev){
   const f = parseDescription(ev.description || "");
-  return (ev.colorId || f.colorId || "11");
+  return sanitizeColorId(ev.colorId || f.colorId) || "11";
 }
 
 /* ===== OAuth / Token ===== */
@@ -788,7 +802,7 @@ function openModal(mode, ev=null){
     $("fAddr").value = f.addr || "";
     $("fContact").value = f.contact || "";
     $("fLock").value = f.lock || "";
-    $("fColor").value = (ev.colorId || f.colorId || "11");
+    $("fColor").value = sanitizeColorId(ev.colorId || f.colorId) || "11";
     $("fRemove").value = f.remove || "";
     $("fKeep").value = f.keep || "";
     $("fProtect").value = f.protect || "";
@@ -825,7 +839,7 @@ function buildEventPayload(dateStr){
 
   // Title shows ADDRESS ONLY
   const summary = `${addr}`.trim();
-  const colorId = fields.colorId || "11";
+  const colorId = sanitizeColorId(fields.colorId) || "11";
 
   const time = ($("fTime").value || "").trim();
   if(time){
