@@ -34,3 +34,14 @@ Open the link on iPhone Safari → Share → Add to Home Screen.
 ## WhatsApp note
 Web apps cannot directly post into a specific group automatically.
 Use: Copy → WhatsApp → paste into pinned group → Send.
+
+
+## Optional: Private Billing Copy calendar
+Create another calendar (e.g. 'KG Billing (Private)') that is NOT shared with anyone.
+Copy its Calendar ID into config.js as BILLING_CALENDAR_ID.
+
+When you Create/Update/Move/Copy/Delete jobs inside this PWA, it will automatically keep a one-way copy in your billing calendar and preserve anything you type under:
+---
+BILLING NOTES (private):
+
+Note: if you edit jobs directly in Google Calendar (outside the PWA), the billing copy will not auto-update.

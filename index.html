@@ -265,6 +265,11 @@ const DEFAULT_DURATION_MIN = Number(CFG.DEFAULT_DURATION_MIN || 120);
 const DEFAULT_CALENDAR_ID = CFG.CALENDAR_ID || "primary";
 let ACTIVE_CALENDAR_ID = localStorage.getItem("kg_active_calendar") || DEFAULT_CALENDAR_ID;
 
+// Optional: keep a PRIVATE copy of every job for billing notes
+const BILLING_CALENDAR_ID = (CFG.BILLING_CALENDAR_ID || "").trim();
+const BILLING_MARKER = "---\nBILLING NOTES (private):\n";
+function billingEnabled(){ return !!BILLING_CALENDAR_ID && BILLING_CALENDAR_ID !== ACTIVE_CALENDAR_ID; }
+
 const SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly openid email";
 let accessToken = "";
 let tokenExpiryMs = 0;
@@ -870,21 +875,96 @@ function buildEventPayload(dateStr){
   };
 }
 
+
+// ===== Billing Calendar Copy (one-way sync) =====
+function extractBillingNotes(existingDesc){
+  const desc = String(existingDesc || "");
+  const i = desc.indexOf(BILLING_MARKER);
+  if(i === -1) return "";
+  return desc.slice(i + BILLING_MARKER.length);
+}
+function buildBillingDescription(srcDesc, existingBillingDesc){
+  const notes = extractBillingNotes(existingBillingDesc);
+  const src = String(srcDesc || "").trimEnd();
+  return src + "\n\n" + BILLING_MARKER + notes;
+}
+async function findBillingEventIdsBySrc(srcEventId){
+  if(!billingEnabled()) return [];
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(BILLING_CALENDAR_ID)}/events?maxResults=10&singleEvents=true&privateExtendedProperty=kg_src=${encodeURIComponent(srcEventId)}`;
+  const data = await apiFetch(url);
+  return (data.items||[]).map(x=>x.id).filter(Boolean);
+}
+async function getBillingEventById(billingEventId){
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(BILLING_CALENDAR_ID)}/events/${encodeURIComponent(billingEventId)}`;
+  return apiFetch(url);
+}
+async function upsertBillingCopy(srcEventId, srcPayload){
+  if(!billingEnabled()) return;
+  const ids = await findBillingEventIdsBySrc(srcEventId);
+  if(ids.length){
+    // Preserve billing notes
+    const existing = await getBillingEventById(ids[0]);
+    const patch = {
+      summary: srcPayload.summary,
+      start: srcPayload.start,
+      end: srcPayload.end,
+      colorId: srcPayload.colorId,
+      description: buildBillingDescription(srcPayload.description, existing.description),
+      extendedProperties: { private: { kg_src: srcEventId } }
+    };
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(BILLING_CALENDAR_ID)}/events/${encodeURIComponent(ids[0])}`;
+    await apiFetch(url, { method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(patch) });
+    return;
+  }
+  // Create new billing event
+  const payload = {
+    summary: srcPayload.summary,
+    start: srcPayload.start,
+    end: srcPayload.end,
+    colorId: srcPayload.colorId,
+    description: buildBillingDescription(srcPayload.description, ""),
+    extendedProperties: { private: { kg_src: srcEventId } }
+  };
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(BILLING_CALENDAR_ID)}/events`;
+  await apiFetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+}
+async function deleteBillingCopy(srcEventId){
+  if(!billingEnabled()) return;
+  const ids = await findBillingEventIdsBySrc(srcEventId);
+  for(const id of ids){
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(BILLING_CALENDAR_ID)}/events/${encodeURIComponent(id)}`;
+    await apiFetch(url, { method:"DELETE" });
+  }
+}
+async function patchBillingTimeOnly(srcEventId, start, end){
+  if(!billingEnabled()) return;
+  const ids = await findBillingEventIdsBySrc(srcEventId);
+  for(const id of ids){
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(BILLING_CALENDAR_ID)}/events/${encodeURIComponent(id)}`;
+    await apiFetch(url, { method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ start, end }) });
+  }
+}
+// ===== End Billing Copy =====
+
 async function createEventOnDate(dateStr){
   const payload = buildEventPayload(dateStr);
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
-  await apiFetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+  const created = await apiFetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+  // Also keep a private billing copy (if configured)
+  await upsertBillingCopy(created.id, payload);
 }
 
 async function updateEvent(evId, dateStr){
   const payload = buildEventPayload(dateStr);
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(evId)}`;
   await apiFetch(url, { method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+  await upsertBillingCopy(evId, payload);
 }
 
 async function deleteEvent(evId){
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(evId)}`;
   await apiFetch(url, { method:"DELETE" });
+  await deleteBillingCopy(evId);
 }
 
 function shiftEvent(ev, targetDate){
@@ -912,6 +992,7 @@ async function moveEventToDate(ev, targetDate){
   const shifted = shiftEvent(ev, targetDate);
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
   await apiFetch(url, { method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ start: shifted.start, end: shifted.end }) });
+  await patchBillingTimeOnly(ev.id, shifted.start, shifted.end);
 }
 
 async function copyEventToDate(ev, targetDate){
@@ -929,7 +1010,8 @@ async function copyEventToDate(ev, targetDate){
   };
 
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events`;
-  await apiFetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+  const created = await apiFetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+  await upsertBillingCopy(created.id, payload);
 }
 
 /* ===== WhatsApp ===== */
