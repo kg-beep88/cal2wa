@@ -4,5 +4,10 @@ window.APP_CONFIG = {
   DEFAULT_FILTER: "#KG",               // tag stored in DESCRIPTION for filtering
   DEFAULT_DURATION_MIN: 120,
   CALENDAR_ID: "primary",              // calendar you schedule jobs into
-  BILLING_CALENDAR_ID: "f0b3394a57d1f0c0493153fa1eb17f5c71da82531eaa81122e95c403353a66f4@group.calendar.google.com"            // OPTIONAL: private calendar ID for billing copy (only you can see)
+  BILLING_CALENDAR_ID: "f0b3394a57d1f0c0493153fa1eb17f5c71da82531eaa81122e95c403353a66f4@group.calendar.google.com",            // OPTIONAL: private calendar ID for billing copy (only you can see)
+
+  // OPTIONAL security gate for billing.html
+  // If set, only this Google account email can use the billing page.
+  // Others can open billing.html, but they will be blocked from loading your data.
+  BILLING_ALLOWED_EMAIL: "ksleezkg@gmail.com"
 };

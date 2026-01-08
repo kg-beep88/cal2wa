@@ -2,6 +2,7 @@ const CACHE = "kg-cal2wa-clean-v5-2-4-5";
 const ASSETS = [
   "./",
   "./index.html",
+  "./billing.html",
   "./config.js",
   "./manifest.webmanifest",
   "./sw.js",
@@ -29,7 +30,7 @@ self.addEventListener("fetch", (e) => {
   if (url.origin !== self.location.origin) return;
 
   const accept = req.headers.get("accept") || "";
-  const isHTML = req.mode === "navigate" || accept.includes("text/html") || url.pathname.endsWith("/index.html");
+  const isHTML = req.mode === "navigate" || accept.includes("text/html") || url.pathname.endsWith("/index.html") || url.pathname.endsWith("/billing.html");
 
   if (isHTML) {
     e.respondWith((async ()=>{
@@ -39,7 +40,7 @@ self.addEventListener("fetch", (e) => {
         cache.put(req, fresh.clone());
         return fresh;
       }catch{
-        return (await caches.match(req)) || caches.match("./index.html");
+        return (await caches.match(req)) || caches.match("./index.html") || caches.match("./billing.html");
       }
     })());
     return;
