@@ -45,3 +45,16 @@ When you Create/Update/Move/Copy/Delete jobs inside this PWA, it will automatica
 BILLING NOTES (private):
 
 Note: if you edit jobs directly in Google Calendar (outside the PWA), the billing copy will not auto-update.
+
+---
+
+## SAFE 2-WAY SYNC v5.3.0
+
+This package includes `DONKEY-GOOGLE-2WAY-SYNC-SETUP.md` with the current simple Google Cloud + GitHub setup.
+
+Key safety behavior:
+- Google Calendar is the master copy.
+- Automatic refresh is Google -> website only; it never bulk-deletes/reconciles Google data.
+- Website changes are written directly to Google Calendar.
+- Event ETags prevent stale edits from overwriting a newer Google Calendar edit.
+- Browser keeps a local safety snapshot before Edit/Move/Delete.

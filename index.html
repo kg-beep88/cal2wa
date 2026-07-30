@@ -110,7 +110,7 @@
           <div class="s">Edit jobs + send WhatsApp daily schedule</div>
         </div>
       </div>
-      <div class="muted" style="font-size:12px;font-weight:900;">CLEAN v5.2.4.5</div>
+      <div class="muted" style="font-size:12px;font-weight:900;">SAFE 2-WAY SYNC v5.3.0</div>
     </div>
   </div>
 
@@ -124,7 +124,7 @@
           <div class="titlePill" id="monthLabel">Month</div>
         </div>
         <div class="right">
-          <button class="secondary small" id="loadBtn">Load</button>
+          <button class="secondary small" id="loadBtn">Sync now</button>
           <button class="secondary small" id="billingBtn" title="Open private billing page">Billing</button>
           <button class="secondary small" id="resetBtn" title="Clear app cache if updates are not showing">Reset Cache</button>
           <button class="plus" id="newBtn" title="Add job">+</button>
@@ -146,10 +146,11 @@
         <div class="ctrl">
           <label>Account</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="secondary" id="authBtn">Authorize</button>
+            <button class="secondary" id="authBtn">1-Click Google Login</button>
             <button class="secondary" id="logoutBtn">Logout</button>
           </div>
           <div class="whoami" id="whoami">Not signed in</div>
+          <div class="whoami" id="syncState">Google ⇄ Website: OFF</div>
         </div>
         <div class="ctrl">
           <label>WhatsApp</label>
@@ -166,7 +167,7 @@
         </div>
       </div>
 
-      <div class="status" id="status">Ready. Click Authorize to connect Google Calendar. (If you see API 401, click Authorize again.)</div>
+      <div class="status" id="status">Ready. Click 1-Click Google Login. Sync never bulk-deletes Google data.</div>
       <div class="debug" id="debugBox"></div>
 
       <div class="dowHeader" id="dowHeader" style="display:none;">
@@ -276,6 +277,8 @@ let accessToken = "";
 let tokenExpiryMs = 0;
 let tokenClient = null;
 let _tokenWaiter = null;
+let autoSyncTimer = null;
+let loadInFlight = false;
 
 let lastEvents = [];
 let dragAct = "M"; // remembered at dragstart
@@ -298,6 +301,31 @@ window.addEventListener("error", (e)=>{
     alert(msg);
   }catch{}
 });
+
+// ===== Data-safety helpers =====
+// Google Calendar is the master copy. Sync only READS Google changes into the UI;
+// there is no bulk replace/delete reconciliation. Before a user edit/move/delete,
+// keep a small local safety snapshot so an accidental change is easier to recover.
+const SAFETY_BACKUP_KEY = "kg_calendar_safety_backups_v1";
+function saveSafetyBackup(ev, action){
+  if(!ev) return;
+  try{
+    const arr = JSON.parse(localStorage.getItem(SAFETY_BACKUP_KEY) || "[]");
+    arr.unshift({ savedAt:new Date().toISOString(), action, calendarId:ACTIVE_CALENDAR_ID, event:ev });
+    localStorage.setItem(SAFETY_BACKUP_KEY, JSON.stringify(arr.slice(0,50)));
+  }catch(e){ console.warn("Safety backup skipped", e); }
+}
+function conflictError(){
+  return new Error("SYNC CONFLICT: This job changed in Google Calendar after you opened it. NOTHING was overwritten. Click Sync now, reopen the job, then edit again.");
+}
+function lastSyncLabel(){
+  const d = new Date();
+  return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+}
+function setConnectedUI(on){
+  const el = $("syncState");
+  if(el) el.textContent = on ? "Google ⇄ Website: ON" : "Google ⇄ Website: OFF";
+}
 
 function isoDateLocal(d){
   const x = new Date(d);
@@ -384,9 +412,11 @@ async function ensureTokenClient(){
   if(!CLIENT_ID || CLIENT_ID.includes("PASTE_YOUR")) throw new Error("CLIENT_ID not set in config.js");
   if(!(window.google && google.accounts && google.accounts.oauth2)) throw new Error("Google login script not loaded. Disable adblock / refresh.");
   if(!tokenClient){
+    const lastEmail = localStorage.getItem("kg_google_last_email") || undefined;
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: SCOPES,
+      login_hint: lastEmail,
       callback: async (resp)=>{
         try{
           if(resp.error) throw new Error(resp.error);
@@ -395,7 +425,9 @@ async function ensureTokenClient(){
           tokenExpiryMs = Date.now() + expiresIn * 1000;
 
           const me = await fetchWhoAmI();
+          if(me?.email) localStorage.setItem("kg_google_last_email", me.email);
           $("whoami").textContent = me?.email ? (`Signed in: ${me.email}`) : "Signed in";
+          setConnectedUI(true);
 
           await initCalendarsUI();
           if(_tokenWaiter){ _tokenWaiter.resolve(true); _tokenWaiter = null; }
@@ -441,8 +473,10 @@ async function silentRefreshToken(forceConsent=false){
 
 async function authorize(){
   try{
-    setStatus("Authorizing…");
-    await requestToken("consent");
+    setStatus("Opening Google login…");
+    // Empty prompt: Google asks for consent only when needed. On later visits this is the
+    // simplest one-click authorization flow available to a browser-only GitHub Pages app.
+    await requestToken("");
   }catch(e){
     dbg(e.message||e);
     alert(e.message || String(e));
@@ -453,16 +487,21 @@ async function authorize(){
 function logout(){
   accessToken = "";
   tokenExpiryMs = 0;
+  tokenClient = null;
+  localStorage.removeItem("kg_google_last_email");
   $("whoami").textContent = "Not signed in";
-  setStatus("Logged out.");
+  setConnectedUI(false);
+  setStatus("Logged out. Your Google Calendar data was not changed. Next login can choose another account.");
 }
 
 /* ===== API ===== */
-async function apiFetch(url, opts={}, _retry=true){
+async function apiFetch(url, opts={}){
   if(!accessToken || (tokenExpiryMs && Date.now() > (tokenExpiryMs - 60_000))){
-    await silentRefreshToken();
+    accessToken = "";
+    tokenExpiryMs = 0;
+    setConnectedUI(false);
+    throw new Error("Google session expired. Click 1-Click Google Login, then try again. No data was changed.");
   }
-  if(!accessToken) throw new Error("Not authorized");
 
   const res = await fetch(url, {
     ...opts,
@@ -470,13 +509,13 @@ async function apiFetch(url, opts={}, _retry=true){
   });
   const text = await res.text();
 
-  if(res.status === 401 && _retry){
+  if(res.status === 401){
     accessToken = "";
     tokenExpiryMs = 0;
-    await silentRefreshToken(true);
-    return apiFetch(url, opts, false);
+    setConnectedUI(false);
+    throw new Error("Google session expired. Click 1-Click Google Login, then try again. No data was changed.");
   }
-
+  if(res.status === 412) throw conflictError();
   if(!res.ok) throw new Error(`API ${res.status}: ${text.slice(0,220)}`);
   return text ? JSON.parse(text) : {};
 }
@@ -555,6 +594,9 @@ function groupByDate(items){
   return g;
 }
 function eventMatchesFilter(ev){
+  // New jobs carry a private marker so they remain visible even if somebody edits
+  // the description in Google Calendar and removes the #KG text. Older jobs still use #KG.
+  if(ev?.extendedProperties?.private?.kg_app === "1") return true;
   const hay = ((ev.summary||"") + " " + (ev.description||"") + " " + (ev.location||"")).toLowerCase();
   return hay.includes(DEFAULT_FILTER.toLowerCase());
 }
@@ -583,15 +625,15 @@ async function fetchEvents(){
 }
 
 async function load(){
+  if(loadInFlight) return;
+  loadInFlight = true;
   try{
     if(!accessToken){
-      $("monthGrid").style.display="none";
-      $("dowHeader").style.display="none";
-      $("dayList").style.display="none";
-      setStatus("Not authorized. Click Authorize.");
+      setConnectedUI(false);
+      setStatus("Not connected. Click 1-Click Google Login. Existing Google data is untouched.");
       return;
     }
-    setStatus("Loading…");
+    setStatus("Syncing Google → website…");
     const view = $("viewSel").value;
     const { items, range } = await fetchEvents();
     lastEvents = items;
@@ -604,7 +646,8 @@ async function load(){
       $("dowHeader").style.display="none";
       renderDay(items);
     }
-    setStatus("Loaded.");
+    setConnectedUI(true);
+    setStatus(`2-way sync OK • last Google pull ${lastSyncLabel()} • auto refresh every 60 sec`);
   }catch(e){
     dbg(e.message||e);
     setStatus(e.message || String(e));
@@ -612,6 +655,8 @@ async function load(){
       setStatus("Calendar not found. Choose from Calendar dropdown.");
       try{ await initCalendarsUI(); }catch{}
     }
+  }finally{
+    loadInFlight = false;
   }
 }
 
@@ -859,6 +904,7 @@ function buildEventPayload(dateStr){
       summary,
       description: desc,
       colorId,
+      extendedProperties: { private: { kg_app: "1", kg_schema: "5.3.0" } },
       start: { dateTime: start.toISOString() },
       end: { dateTime: end.toISOString() }
     };
@@ -871,6 +917,7 @@ function buildEventPayload(dateStr){
     summary,
     description: desc,
     colorId,
+    extendedProperties: { private: { kg_app: "1", kg_schema: "5.3.0" } },
     start: { date: dateStr },
     end: { date: isoDateLocal(endDay) }
   };
@@ -955,17 +1002,19 @@ async function createEventOnDate(dateStr){
   await upsertBillingCopy(created.id, payload);
 }
 
-async function updateEvent(evId, dateStr){
+async function updateEvent(ev, dateStr){
   const payload = buildEventPayload(dateStr);
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(evId)}`;
-  await apiFetch(url, { method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
-  await upsertBillingCopy(evId, payload);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
+  saveSafetyBackup(ev, "before update");
+  await apiFetch(url, { method:"PATCH", headers:{ "Content-Type":"application/json", ...(ev.etag ? {"If-Match":ev.etag} : {}) }, body: JSON.stringify(payload) });
+  await upsertBillingCopy(ev.id, payload);
 }
 
-async function deleteEvent(evId){
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(evId)}`;
-  await apiFetch(url, { method:"DELETE" });
-  await deleteBillingCopy(evId);
+async function deleteEvent(ev){
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
+  saveSafetyBackup(ev, "before delete");
+  await apiFetch(url, { method:"DELETE", headers:{ ...(ev.etag ? {"If-Match":ev.etag} : {}) } });
+  await deleteBillingCopy(ev.id);
 }
 
 function shiftEvent(ev, targetDate){
@@ -992,7 +1041,8 @@ function shiftEvent(ev, targetDate){
 async function moveEventToDate(ev, targetDate){
   const shifted = shiftEvent(ev, targetDate);
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(ACTIVE_CALENDAR_ID)}/events/${encodeURIComponent(ev.id)}`;
-  await apiFetch(url, { method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ start: shifted.start, end: shifted.end }) });
+  saveSafetyBackup(ev, "before move");
+  await apiFetch(url, { method:"PATCH", headers:{ "Content-Type":"application/json", ...(ev.etag ? {"If-Match":ev.etag} : {}) }, body: JSON.stringify({ start: shifted.start, end: shifted.end }) });
   await patchBillingTimeOnly(ev.id, shifted.start, shifted.end);
 }
 
@@ -1006,6 +1056,7 @@ async function copyEventToDate(ev, targetDate){
     summary: (ev.summary || "").trim(),
     description: ev.description || "",
     colorId: getEventColorId(ev),
+    extendedProperties: { private: { kg_app: "1", kg_schema: "5.3.0" } },
     start: shifted.start,
     end: shifted.end
   };
@@ -1143,7 +1194,7 @@ function wire(){
         setStatus("Saved");
       }else{
         setStatus("Updating…");
-        await updateEvent(editingEvent.id, dateStr);
+        await updateEvent(editingEvent, dateStr);
         setStatus("Updated");
       }
       closeModal();
@@ -1156,10 +1207,10 @@ function wire(){
 
   $("deleteBtn").addEventListener("click", async ()=>{
     if(!editingEvent) return;
-    if(!confirm("Delete this job?")) return;
+    if(!confirm("Delete this job from Google Calendar? A local safety copy will be kept first.")) return;
     try{
       setStatus("Deleting…");
-      await deleteEvent(editingEvent.id);
+      await deleteEvent(editingEvent);
       setStatus("Deleted");
       closeModal();
       await load();
@@ -1185,6 +1236,16 @@ function wire(){
   });
 
   refreshPreview();
+
+  // Google → website automatic pull. This never deletes or replaces Google Calendar data.
+  autoSyncTimer = setInterval(()=>{
+    if(accessToken && document.visibilityState === "visible" && navigator.onLine) load();
+  }, 60_000);
+  window.addEventListener("focus", ()=>{ if(accessToken && navigator.onLine) load(); });
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "visible" && accessToken && navigator.onLine) load();
+  });
+  window.addEventListener("online", ()=>{ if(accessToken) load(); });
 
   if("serviceWorker" in navigator){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});

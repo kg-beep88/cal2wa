@@ -44,7 +44,7 @@
           <a class="pill" href="./index.html">← Work calendar</a>
         </div>
         <div class="row">
-          <button class="btn secondary" id="authBtn">Authorize</button>
+          <button class="btn secondary" id="authBtn">1-Click Google Login</button>
           <button class="btn" id="reloadBtn" disabled>Reload</button>
         </div>
       </div>
@@ -122,9 +122,11 @@
       if(!CLIENT_ID || CLIENT_ID.includes("PASTE_YOUR")) throw new Error("CLIENT_ID not set in config.js");
       if(!(window.google && google.accounts && google.accounts.oauth2)) throw new Error("Google login script not loaded. Disable adblock / refresh.");
       if(!tokenClient){
+        const lastEmail = localStorage.getItem("kg_google_last_email") || undefined;
         tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
           scope: SCOPES,
+          login_hint: lastEmail,
           callback: async (resp)=>{
             try{
               if(resp.error) throw new Error(resp.error);
@@ -134,6 +136,7 @@
 
               const me = await fetchWhoAmI();
               meEmail = (me?.email || "").toLowerCase();
+              if(me?.email) localStorage.setItem("kg_google_last_email", me.email);
               $("whoami").textContent = me?.email ? (`Signed in: ${me.email}`) : "Signed in";
 
               if(_tokenWaiter){ _tokenWaiter.resolve(true); _tokenWaiter = null; }
@@ -173,29 +176,28 @@
     async function silentRefreshToken(forceConsent=false){
       try{ await requestToken(""); }
       catch(e){
-        if(forceConsent){ await requestToken("consent"); return; }
-        setStatus("Session expired. Click Authorize.");
+        if(forceConsent){ await requestToken(""); return; }
+        setStatus("Session expired. Click 1-Click Google Login.");
         accessToken = ""; tokenExpiryMs = 0;
       }
     }
 
-    async function apiFetch(url, opts={}, _retry=true){
+    async function apiFetch(url, opts={}){
       if(!accessToken || (tokenExpiryMs && Date.now() > (tokenExpiryMs - 60_000))){
-        await silentRefreshToken();
+        accessToken = ""; tokenExpiryMs = 0;
+        throw new Error("Google session expired. Click 1-Click Google Login. No billing data was changed.");
       }
-      if(!accessToken) throw new Error("Not authorized");
 
       const res = await fetch(url, {
         ...opts,
         headers: { ...(opts.headers||{}), "Authorization": `Bearer ${accessToken}` }
       });
       const text = await res.text();
-
-      if(res.status === 401 && _retry){
+      if(res.status === 401){
         accessToken = ""; tokenExpiryMs = 0;
-        await silentRefreshToken(true);
-        return apiFetch(url, opts, false);
+        throw new Error("Google session expired. Click 1-Click Google Login. No billing data was changed.");
       }
+      if(res.status === 412) throw new Error("SYNC CONFLICT: This billing event changed in Google. Nothing was overwritten. Reload and try again.");
       if(!res.ok) throw new Error(`API ${res.status}: ${text.slice(0,220)}`);
       return text ? JSON.parse(text) : {};
     }
@@ -222,11 +224,11 @@
       return String(s||"").replace(/[&<>\"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
     }
 
-    async function patchEvent(calendarId, eventId, patchBody){
+    async function patchEvent(calendarId, eventId, patchBody, etag=""){
       const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`;
       return apiFetch(url, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(etag ? {"If-Match":etag} : {}) },
         body: JSON.stringify(patchBody)
       });
     }
@@ -236,7 +238,7 @@
       priv.billed = billed ? "1" : "0";
       priv.billedDate = billed ? isoDate(new Date()) : "";
       setStatus(billed ? "Marking as billed…" : "Marking as unbilled…");
-      await patchEvent(BILLING_CALENDAR_ID, ev.id, { extendedProperties: { private: priv } });
+      await patchEvent(BILLING_CALENDAR_ID, ev.id, { extendedProperties: { private: priv } }, ev.etag || "");
       await load();
     }
 
@@ -319,8 +321,8 @@
 
     $("authBtn").onclick = async ()=>{
       try{
-        setStatus("Authorizing…");
-        await requestToken("consent");
+        setStatus("Opening Google login…");
+        await requestToken("");
       }catch(e){
         alert(e.message || String(e));
         setStatus("Authorize failed");
