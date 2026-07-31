@@ -103,6 +103,8 @@
     let accessToken = "";
     let tokenExpiryMs = 0;
     let _tokenWaiter = null;
+    let googleSessionKnown = localStorage.getItem("kg_google_authorized") === "1";
+    let tokenNeedsUserRefresh = false;
     let meEmail = "";
 
     function setStatus(t){ $("status").textContent = t; }
@@ -118,7 +120,11 @@
       }catch{ return null; }
     }
 
-    async function ensureTokenClient(){
+    function hasUsableToken(minRemainingMs=60_000){
+      return !!accessToken && (!tokenExpiryMs || Date.now() < (tokenExpiryMs - minRemainingMs));
+    }
+
+    function ensureTokenClient(){
       if(!CLIENT_ID || CLIENT_ID.includes("PASTE_YOUR")) throw new Error("CLIENT_ID not set in config.js");
       if(!(window.google && google.accounts && google.accounts.oauth2)) throw new Error("Google login script not loaded. Disable adblock / refresh.");
       if(!tokenClient){
@@ -128,18 +134,22 @@
           scope: SCOPES,
           login_hint: lastEmail,
           callback: async (resp)=>{
+            const waiter = _tokenWaiter;
             try{
-              if(resp.error) throw new Error(resp.error);
+              if(resp.error) throw new Error(resp.error_description || resp.error);
               accessToken = resp.access_token || "";
               const expiresIn = Number(resp.expires_in || 3600);
               tokenExpiryMs = Date.now() + expiresIn * 1000;
+              tokenNeedsUserRefresh = false;
+              googleSessionKnown = true;
+              localStorage.setItem("kg_google_authorized", "1");
 
               const me = await fetchWhoAmI();
               meEmail = (me?.email || "").toLowerCase();
               if(me?.email) localStorage.setItem("kg_google_last_email", me.email);
               $("whoami").textContent = me?.email ? (`Signed in: ${me.email}`) : "Signed in";
 
-              if(_tokenWaiter){ _tokenWaiter.resolve(true); _tokenWaiter = null; }
+              if(waiter){ waiter.resolve(true); _tokenWaiter = null; }
 
               // Soft gate (client-side)
               if(BILLING_ALLOWED_EMAIL){
@@ -153,11 +163,18 @@
               }
 
               $("reloadBtn").disabled = false;
-              await load();
+              if(waiter?.purpose === "login") await load();
+              else setStatus("Google connected — session renewed automatically.");
             }catch(e){
-              if(_tokenWaiter){ _tokenWaiter.reject(e); _tokenWaiter = null; }
-              alert(e.message || String(e));
-              setStatus("Authorize failed.");
+              accessToken = ""; tokenExpiryMs = 0;
+              tokenNeedsUserRefresh = googleSessionKnown;
+              if(waiter && _tokenWaiter === waiter){ waiter.reject(e); _tokenWaiter = null; }
+              if(waiter?.purpose === "login"){
+                alert(e.message || String(e));
+                setStatus("Authorize failed.");
+              }else{
+                setStatus("Google is ready to reconnect. Tap 1-Click Google Login if Google asks you to sign in again.");
+              }
             }
           }
         });
@@ -165,27 +182,38 @@
       return tokenClient;
     }
 
-    async function requestToken(promptMode){
-      await ensureTokenClient();
-      return new Promise((resolve,reject)=>{
-        _tokenWaiter = { resolve, reject };
+    function requestToken(promptMode="", purpose="login"){
+      ensureTokenClient();
+      if(_tokenWaiter?.promise) return _tokenWaiter.promise;
+      let resolveFn, rejectFn;
+      const promise = new Promise((resolve,reject)=>{ resolveFn=resolve; rejectFn=reject; });
+      _tokenWaiter = { resolve:resolveFn, reject:rejectFn, promise, purpose };
+      try{
         tokenClient.requestAccessToken({ prompt: promptMode });
-      });
+      }catch(e){
+        const waiter = _tokenWaiter;
+        _tokenWaiter = null;
+        waiter?.reject(e);
+      }
+      return promise;
     }
 
-    async function silentRefreshToken(forceConsent=false){
-      try{ await requestToken(""); }
-      catch(e){
-        if(forceConsent){ await requestToken(""); return; }
-        setStatus("Session expired. Click 1-Click Google Login.");
-        accessToken = ""; tokenExpiryMs = 0;
+    function keepGoogleSessionAliveFromGesture(e){
+      if(e?.target?.closest?.("#authBtn")) return;
+      if(!googleSessionKnown || _tokenWaiter) return;
+      if(!hasUsableToken(10 * 60_000)){
+        tokenNeedsUserRefresh = true;
+        requestToken("", "refresh").catch(()=>{});
       }
     }
 
     async function apiFetch(url, opts={}){
-      if(!accessToken || (tokenExpiryMs && Date.now() > (tokenExpiryMs - 60_000))){
-        accessToken = ""; tokenExpiryMs = 0;
-        throw new Error("Google session expired. Click 1-Click Google Login. No billing data was changed.");
+      if(_tokenWaiter?.purpose === "refresh" && _tokenWaiter.promise){
+        try{ await _tokenWaiter.promise; }catch{}
+      }
+      if(!hasUsableToken(5_000)){
+        tokenNeedsUserRefresh = googleSessionKnown;
+        throw new Error("Google authorization needs a quick renewal. Tap the same action once more, or tap 1-Click Google Login. No billing data was changed.");
       }
 
       const res = await fetch(url, {
@@ -195,7 +223,8 @@
       const text = await res.text();
       if(res.status === 401){
         accessToken = ""; tokenExpiryMs = 0;
-        throw new Error("Google session expired. Click 1-Click Google Login. No billing data was changed.");
+        tokenNeedsUserRefresh = googleSessionKnown;
+        throw new Error("Google authorization needs renewal. Tap the same action again; the app will reconnect first. No billing data was changed.");
       }
       if(res.status === 412) throw new Error("SYNC CONFLICT: This billing event changed in Google. Nothing was overwritten. Reload and try again.");
       if(!res.ok) throw new Error(`API ${res.status}: ${text.slice(0,220)}`);
@@ -322,12 +351,17 @@
     $("authBtn").onclick = async ()=>{
       try{
         setStatus("Opening Google login…");
-        await requestToken("");
+        await requestToken("", "login");
       }catch(e){
         alert(e.message || String(e));
         setStatus("Authorize failed");
       }
     };
+
+    document.addEventListener("pointerdown", keepGoogleSessionAliveFromGesture, {capture:true});
+    document.addEventListener("keydown", (e)=>{
+      if(e.key === "Enter" || e.key === " " || e.key === "Tab") keepGoogleSessionAliveFromGesture(e);
+    }, {capture:true});
     $("reloadBtn").onclick = ()=>load();
     $("filterSel").onchange = ()=>load();
     $("rangeSel").onchange = ()=>load();

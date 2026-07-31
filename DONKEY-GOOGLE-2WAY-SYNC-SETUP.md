@@ -164,7 +164,7 @@ The website remembers the selected calendar in that browser.
 
 This new version has Service Worker cache name:
 
-`kg-cal2wa-safe-2way-v5-3-0`
+`kg-cal2wa-safe-2way-v5-4-0`
 
 So the browser should pick up the update cleanly.
 
@@ -187,7 +187,9 @@ Reset Cache clears the website cache only. It does NOT delete Google Calendar ev
 3. First time only: Google may ask which account and ask permission.
 4. Later visits: Google normally remembers the previous grant; the same button starts the authorization without forcing the consent screen every time.
 
-Important: Google access tokens are deliberately short-lived. A browser-only GitHub Pages app cannot securely keep a permanent refresh token. If the Google session expires, the website will tell the user to press **1-Click Google Login** again. It will NOT wipe anything.
+Important: Google access tokens are deliberately short-lived. This v5.4.0 version keeps the website feeling connected while it stays open: before/after the token expires, the next normal tap/click/key action asks Google for a new token and then the Calendar action continues. Usually there is no consent screen again because permission was already granted.
+
+Google still requires browser-only token renewal to begin from a user gesture. So if nobody touches the page for a long time, the automatic 60-second pull pauses after the token expires; the next tap resumes it. If the Google account itself signed out, permission was revoked, or the page was refreshed/closed, Google may require **1-Click Google Login** again. No Calendar data is wiped.
 
 ## 2-way sync
 
@@ -242,3 +244,19 @@ Use ONE test Gmail first.
 5. Phone A presses **Sync now**, reopens job, and edits again.
 
 That proves the anti-wipe / anti-overwrite safety is working.
+
+
+# PART G — v5.4.0 “don’t disconnect while open” behavior
+
+Think of it like this:
+
+1. Open website.
+2. Press **1-Click Google Login** once.
+3. Keep website open.
+4. Work normally.
+5. Near token expiry, your next normal tap/click quietly renews Google access first.
+6. If you leave the screen untouched past expiry, nothing is deleted; automatic background pull simply waits.
+7. Touch **Sync now** (or another Calendar action) and renewal starts, then syncing continues.
+8. A full browser refresh/reopen can still require the Google login button because this GitHub Pages version intentionally does not store a long-lived Google refresh token in the browser.
+
+This is the safest possible “stay connected” behavior for a browser-only GitHub Pages app. For truly unattended renewal with zero user gesture, you need a Google Cloud backend using OAuth Authorization Code flow and a securely stored refresh token.

@@ -110,7 +110,7 @@
           <div class="s">Edit jobs + send WhatsApp daily schedule</div>
         </div>
       </div>
-      <div class="muted" style="font-size:12px;font-weight:900;">SAFE 2-WAY SYNC v5.3.0</div>
+      <div class="muted" style="font-size:12px;font-weight:900;">SAFE 2-WAY SYNC v5.4.0</div>
     </div>
   </div>
 
@@ -277,6 +277,8 @@ let accessToken = "";
 let tokenExpiryMs = 0;
 let tokenClient = null;
 let _tokenWaiter = null;
+let googleSessionKnown = localStorage.getItem("kg_google_authorized") === "1";
+let tokenNeedsUserRefresh = false;
 let autoSyncTimer = null;
 let loadInFlight = false;
 
@@ -408,7 +410,11 @@ async function fetchWhoAmI(){
   }catch{ return null; }
 }
 
-async function ensureTokenClient(){
+function hasUsableToken(minRemainingMs=60_000){
+  return !!accessToken && (!tokenExpiryMs || Date.now() < (tokenExpiryMs - minRemainingMs));
+}
+
+function ensureTokenClient(){
   if(!CLIENT_ID || CLIENT_ID.includes("PASTE_YOUR")) throw new Error("CLIENT_ID not set in config.js");
   if(!(window.google && google.accounts && google.accounts.oauth2)) throw new Error("Google login script not loaded. Disable adblock / refresh.");
   if(!tokenClient){
@@ -418,24 +424,43 @@ async function ensureTokenClient(){
       scope: SCOPES,
       login_hint: lastEmail,
       callback: async (resp)=>{
+        const waiter = _tokenWaiter;
         try{
-          if(resp.error) throw new Error(resp.error);
+          if(resp.error) throw new Error(resp.error_description || resp.error);
           accessToken = resp.access_token || "";
           const expiresIn = Number(resp.expires_in || 3600);
           tokenExpiryMs = Date.now() + expiresIn * 1000;
+          tokenNeedsUserRefresh = false;
+          googleSessionKnown = true;
+          localStorage.setItem("kg_google_authorized", "1");
 
           const me = await fetchWhoAmI();
           if(me?.email) localStorage.setItem("kg_google_last_email", me.email);
           $("whoami").textContent = me?.email ? (`Signed in: ${me.email}`) : "Signed in";
           setConnectedUI(true);
 
-          await initCalendarsUI();
-          if(_tokenWaiter){ _tokenWaiter.resolve(true); _tokenWaiter = null; }
-          await load();
+          // Resolve renewal immediately so the user's original button action can continue.
+          if(waiter){ waiter.resolve(true); _tokenWaiter = null; }
+
+          if(waiter?.purpose === "login"){
+            await initCalendarsUI();
+            await load();
+          }else{
+            setStatus("Google connected — session renewed automatically.");
+          }
         }catch(e){
-          if(_tokenWaiter){ _tokenWaiter.reject(e); _tokenWaiter = null; }
+          accessToken = "";
+          tokenExpiryMs = 0;
+          tokenNeedsUserRefresh = googleSessionKnown;
+          if(waiter && _tokenWaiter === waiter){ waiter.reject(e); _tokenWaiter = null; }
           dbg(e.message||e);
-          alert(e.message || String(e));
+          if(waiter?.purpose === "login"){
+            alert(e.message || String(e));
+            setConnectedUI(false);
+          }else{
+            // Do not pretend the calendar was disconnected or wipe anything.
+            setStatus("Google is ready to reconnect. Tap 1-Click Google Login if Google asks you to sign in again.");
+          }
         }
       }
     });
@@ -443,40 +468,39 @@ async function ensureTokenClient(){
   return tokenClient;
 }
 
-async function requestToken(promptMode){
-  await ensureTokenClient();
-  return new Promise((resolve, reject)=>{
-    _tokenWaiter = { resolve, reject };
-    try{
-      tokenClient.requestAccessToken({ prompt: promptMode });
-    }catch(e){
-      _tokenWaiter = null;
-      reject(e);
-    }
-  });
+function requestToken(promptMode="", purpose="login"){
+  ensureTokenClient();
+  if(_tokenWaiter?.promise) return _tokenWaiter.promise;
+  let resolveFn, rejectFn;
+  const promise = new Promise((resolve, reject)=>{ resolveFn=resolve; rejectFn=reject; });
+  _tokenWaiter = { resolve:resolveFn, reject:rejectFn, promise, purpose };
+  try{
+    // This call is intentionally made synchronously from a user click/tap whenever possible.
+    tokenClient.requestAccessToken({ prompt: promptMode });
+  }catch(e){
+    const waiter = _tokenWaiter;
+    _tokenWaiter = null;
+    waiter?.reject(e);
+  }
+  return promise;
 }
 
-async function silentRefreshToken(forceConsent=false){
-  try{
-    await requestToken("");
-  }catch(e){
-    if(forceConsent){
-      await requestToken("consent");
-      return;
-    }
-    dbg("Session expired. Please click Authorize again.");
-    setStatus("Session expired. Click Authorize.");
-    accessToken = "";
-    tokenExpiryMs = 0;
+function keepGoogleSessionAliveFromGesture(e){
+  if(e?.target?.closest?.("#authBtn,#logoutBtn,#resetBtn")) return;
+  if(!googleSessionKnown || _tokenWaiter) return;
+  // Renew before expiry, or immediately on the first tap after an idle/expired period.
+  // Google requires a user gesture for browser-only token renewal, so pointer/keyboard
+  // activity is the safest way to make renewal feel automatic without storing secrets.
+  if(!hasUsableToken(10 * 60_000)){
+    tokenNeedsUserRefresh = true;
+    requestToken("", "refresh").catch(()=>{});
   }
 }
 
 async function authorize(){
   try{
     setStatus("Opening Google login…");
-    // Empty prompt: Google asks for consent only when needed. On later visits this is the
-    // simplest one-click authorization flow available to a browser-only GitHub Pages app.
-    await requestToken("");
+    await requestToken("", "login");
   }catch(e){
     dbg(e.message||e);
     alert(e.message || String(e));
@@ -488,6 +512,9 @@ function logout(){
   accessToken = "";
   tokenExpiryMs = 0;
   tokenClient = null;
+  tokenNeedsUserRefresh = false;
+  googleSessionKnown = false;
+  localStorage.removeItem("kg_google_authorized");
   localStorage.removeItem("kg_google_last_email");
   $("whoami").textContent = "Not signed in";
   setConnectedUI(false);
@@ -496,11 +523,16 @@ function logout(){
 
 /* ===== API ===== */
 async function apiFetch(url, opts={}){
-  if(!accessToken || (tokenExpiryMs && Date.now() > (tokenExpiryMs - 60_000))){
-    accessToken = "";
-    tokenExpiryMs = 0;
-    setConnectedUI(false);
-    throw new Error("Google session expired. Click 1-Click Google Login, then try again. No data was changed.");
+  // If a renewal was started by the user's pointer/keyboard gesture, wait for it.
+  if(_tokenWaiter?.purpose === "refresh" && _tokenWaiter.promise){
+    try{ await _tokenWaiter.promise; }catch{}
+  }
+
+  if(!hasUsableToken(5_000)){
+    tokenNeedsUserRefresh = googleSessionKnown;
+    // Keep the UI logically connected: nothing was deleted and the next user tap can renew.
+    if(googleSessionKnown) setConnectedUI(true);
+    throw new Error("Google authorization needs a quick renewal. Tap the button/action once more, or tap 1-Click Google Login. No data was changed.");
   }
 
   const res = await fetch(url, {
@@ -512,8 +544,9 @@ async function apiFetch(url, opts={}){
   if(res.status === 401){
     accessToken = "";
     tokenExpiryMs = 0;
-    setConnectedUI(false);
-    throw new Error("Google session expired. Click 1-Click Google Login, then try again. No data was changed.");
+    tokenNeedsUserRefresh = googleSessionKnown;
+    if(googleSessionKnown) setConnectedUI(true);
+    throw new Error("Google authorization needs renewal. Tap the same action again; the app will reconnect first. No data was changed.");
   }
   if(res.status === 412) throw conflictError();
   if(!res.ok) throw new Error(`API ${res.status}: ${text.slice(0,220)}`);
@@ -628,9 +661,17 @@ async function load(){
   if(loadInFlight) return;
   loadInFlight = true;
   try{
+    if(!accessToken && _tokenWaiter?.purpose === "refresh" && _tokenWaiter.promise){
+      try{ await _tokenWaiter.promise; }catch{}
+    }
     if(!accessToken){
-      setConnectedUI(false);
-      setStatus("Not connected. Click 1-Click Google Login. Existing Google data is untouched.");
+      if(googleSessionKnown){
+        setConnectedUI(true);
+        setStatus("Google ready — tap Sync now or any action to renew the session. Existing Google data is untouched.");
+      }else{
+        setConnectedUI(false);
+        setStatus("Not connected. Click 1-Click Google Login. Existing Google data is untouched.");
+      }
       return;
     }
     setStatus("Syncing Google → website…");
@@ -904,7 +945,7 @@ function buildEventPayload(dateStr){
       summary,
       description: desc,
       colorId,
-      extendedProperties: { private: { kg_app: "1", kg_schema: "5.3.0" } },
+      extendedProperties: { private: { kg_app: "1", kg_schema: "5.4.0" } },
       start: { dateTime: start.toISOString() },
       end: { dateTime: end.toISOString() }
     };
@@ -917,7 +958,7 @@ function buildEventPayload(dateStr){
     summary,
     description: desc,
     colorId,
-    extendedProperties: { private: { kg_app: "1", kg_schema: "5.3.0" } },
+    extendedProperties: { private: { kg_app: "1", kg_schema: "5.4.0" } },
     start: { date: dateStr },
     end: { date: isoDateLocal(endDay) }
   };
@@ -1056,7 +1097,7 @@ async function copyEventToDate(ev, targetDate){
     summary: (ev.summary || "").trim(),
     description: ev.description || "",
     colorId: getEventColorId(ev),
-    extendedProperties: { private: { kg_app: "1", kg_schema: "5.3.0" } },
+    extendedProperties: { private: { kg_app: "1", kg_schema: "5.4.0" } },
     start: shifted.start,
     end: shifted.end
   };
@@ -1237,15 +1278,23 @@ function wire(){
 
   refreshPreview();
 
-  // Google → website automatic pull. This never deletes or replaces Google Calendar data.
+  // Session keeper: Google browser OAuth requires token renewal to start from a user gesture.
+  // Renew on normal taps/clicks/keyboard activity before the token expires.
+  document.addEventListener("pointerdown", keepGoogleSessionAliveFromGesture, {capture:true});
+  document.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter" || e.key === " " || e.key === "Tab") keepGoogleSessionAliveFromGesture(e);
+  }, {capture:true});
+
+  // Google → website automatic pull. Never bulk deletes/replaces Google Calendar data.
   autoSyncTimer = setInterval(()=>{
-    if(accessToken && document.visibilityState === "visible" && navigator.onLine) load();
+    if(hasUsableToken(60_000) && document.visibilityState === "visible" && navigator.onLine) load();
+    else if(googleSessionKnown && !hasUsableToken(0)) setStatus("Google ready — tap anywhere to continue syncing.");
   }, 60_000);
-  window.addEventListener("focus", ()=>{ if(accessToken && navigator.onLine) load(); });
+  window.addEventListener("focus", ()=>{ if(hasUsableToken(30_000) && navigator.onLine) load(); });
   document.addEventListener("visibilitychange", ()=>{
-    if(document.visibilityState === "visible" && accessToken && navigator.onLine) load();
+    if(document.visibilityState === "visible" && hasUsableToken(30_000) && navigator.onLine) load();
   });
-  window.addEventListener("online", ()=>{ if(accessToken) load(); });
+  window.addEventListener("online", ()=>{ if(hasUsableToken(30_000)) load(); });
 
   if("serviceWorker" in navigator){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});

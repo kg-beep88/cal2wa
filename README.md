@@ -48,7 +48,7 @@ Note: if you edit jobs directly in Google Calendar (outside the PWA), the billin
 
 ---
 
-## SAFE 2-WAY SYNC v5.3.0
+## SAFE 2-WAY SYNC v5.4.0
 
 This package includes `DONKEY-GOOGLE-2WAY-SYNC-SETUP.md` with the current simple Google Cloud + GitHub setup.
 
@@ -58,3 +58,11 @@ Key safety behavior:
 - Website changes are written directly to Google Calendar.
 - Event ETags prevent stale edits from overwriting a newer Google Calendar edit.
 - Browser keeps a local safety snapshot before Edit/Move/Delete.
+
+
+### v5.4.0 session keeper
+- The app no longer deliberately switches to OFF just because the short-lived browser access token reaches its expiry time.
+- While the page remains open, a normal tap/click/key action renews the Google token before the Calendar action continues.
+- If the page has been idle past token expiry, the next normal user action starts renewal. Google may still require sign-in again if the Google account session itself ended or permissions were revoked.
+- No refresh token or client secret is stored in GitHub/browser storage.
+- No sync renewal path bulk-deletes or replaces Calendar data.
